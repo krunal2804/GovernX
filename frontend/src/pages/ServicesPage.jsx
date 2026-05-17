@@ -3,7 +3,7 @@ import api from '../api';
 import { 
     HiOutlinePlus, HiOutlineTrash, HiOutlineCollection, 
     HiOutlineDocumentAdd, HiOutlineX, HiOutlinePaperClip, HiOutlinePencil,
-    HiOutlineDocumentText, HiOutlineArrowLeft, HiOutlineExternalLink, HiOutlineUpload, HiOutlineDownload
+    HiOutlineDocumentText, HiOutlineArrowLeft, HiOutlineExternalLink, HiOutlineUpload, HiOutlineDownload, HiOutlineTable
 } from 'react-icons/hi';
 
 function toRoman(num) {
@@ -209,6 +209,7 @@ export default function ServicesPage() {
 
             await api.post(`/services/${selectedServiceId}/upload-steps/confirm`, { rows });
             await loadServiceDetails(selectedServiceId);
+            await loadDocs(selectedServiceId);
             setBulkModal(false);
             setBulkStep(1);
             setBulkRows([]);
@@ -364,21 +365,25 @@ export default function ServicesPage() {
                 {serviceDetails ? (
                     <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
                         <div style={{ marginBottom: '32px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                    <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, flex: 1, paddingRight: '24px' }}>{serviceDetails.name}</h1>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, paddingRight: '24px' }}>
+                                        <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>{serviceDetails.name}</h1>
+                                        <button className="btn-icon" onClick={() => openModal('service', null, serviceDetails)} title="Edit Service">
+                                            <HiOutlinePencil />
+                                        </button>
+                                    </div>
                                     <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                                    <button className="btn btn-secondary btn-sm" onClick={() => openModal('service', null, serviceDetails)}>
-                                        <HiOutlinePencil /> Edit Service
-                                    </button>
-                                    <button className="btn btn-secondary btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => handleDelete('service', serviceDetails.id)}><HiOutlineTrash /> Delete Service</button>
-                                    <button className="btn btn-primary btn-sm" onClick={() => openModal('step', serviceDetails.id)}>
-                                        <HiOutlinePlus /> Add Step
-                                    </button>
-                                    <button className="btn btn-secondary btn-sm" onClick={openBulkModal}>
-                                        <HiOutlineUpload /> Upload Steps
-                                    </button>
+                                        <button className="btn btn-primary btn-sm" onClick={() => openModal('step', serviceDetails.id)}>
+                                            <HiOutlinePlus /> Add Step
+                                        </button>
+                                        <button className="btn btn-secondary btn-sm" onClick={openBulkModal}>
+                                            <HiOutlineTable /> Import from Excel
+                                        </button>
+                                        <button className="btn btn-secondary btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => handleDelete('service', serviceDetails.id)}>
+                                            <HiOutlineTrash /> Delete Service
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
                             <div>
                                 <p style={{ color: 'var(--text-secondary)', margin: '0 0 16px 0', wordBreak: 'break-word', lineHeight: '1.5' }}>{serviceDetails.description}</p>
                                 <button 
