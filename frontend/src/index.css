@@ -160,8 +160,18 @@ a:hover {
 .sidebar.collapsed .sidebar-brand-toggle {
   position: absolute;
   top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-hover);
+  border: none;
+  z-index: 2;
+}
+
+.sidebar.collapsed .sidebar-brand:hover .sidebar-brand-left {
   opacity: 0;
   pointer-events: none;
 }
@@ -169,23 +179,6 @@ a:hover {
 .sidebar.collapsed .sidebar-brand:hover .sidebar-brand-toggle {
   opacity: 1;
   pointer-events: auto;
-}
-
-.sidebar.collapsed .sidebar-brand:focus-within .sidebar-brand-toggle {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-@supports selector(.sidebar-brand:has(.logo:hover)) {
-  .sidebar.collapsed .sidebar-brand:hover .sidebar-brand-toggle {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .sidebar.collapsed .sidebar-brand:has(.logo:hover) .sidebar-brand-toggle {
-    opacity: 1;
-    pointer-events: auto;
-  }
 }
 
 .sidebar-brand {
@@ -308,31 +301,6 @@ a:hover {
 
 .sidebar.collapsed .nav-link {
   position: relative;
-}
-
-.sidebar.collapsed .nav-link::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--text-primary);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-  box-shadow: var(--shadow-md);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-  z-index: 250;
-}
-
-.sidebar.collapsed .nav-link:hover::after {
-  opacity: 1;
 }
 
 /* ── Sidebar Accordion (My Assignments / My Projects) ─────────── */
