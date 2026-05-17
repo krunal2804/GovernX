@@ -15,6 +15,7 @@ import {
     HiOutlineTemplate,
     HiOutlineChevronDown,
     HiOutlineChevronRight,
+    HiOutlineChevronLeft,
     HiOutlineBell,
 } from 'react-icons/hi';
 import { formatWorkflowStatus } from '../utils/workflowStatus';
@@ -67,9 +68,11 @@ function SidebarAccordion({ icon: Icon, label, linkTo, children, defaultOpen = f
                         `sidebar-accordion-nav-label nav-link ${isActive ? 'active' : ''}`
                     }
                     onClick={onNavigate}
+                    data-tooltip={label}
+                    title={label}
                 >
                     <span className="icon"><Icon /></span>
-                    <span style={{ flex: 1 }}>{label}</span>
+                    <span className="nav-label" style={{ flex: 1 }}>{label}</span>
                 </NavLink>
 
                 {/* Chevron — only toggles the accordion */}
@@ -139,9 +142,11 @@ function ConsultingSidebar({ onNavigate }) {
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 onClick={onNavigate}
                 style={{ position: 'relative', marginBottom: '8px' }}
+                data-tooltip="Announcements"
+                title="Announcements"
             >
                 <span className="icon"><HiOutlineBell /></span>
-                Announcements
+                <span className="nav-label">Announcements</span>
                 {unreadCount > 0 && (
                     <span style={{
                         position: 'absolute',
@@ -228,6 +233,13 @@ export default function Layout() {
     const { user, logout } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        try {
+            return localStorage.getItem('sidebarCollapsed') === 'true';
+        } catch {
+            return false;
+        }
+    });
 
     const roleName = user?.role_name || '';
     const isConsultingRole = CONSULTING_ROLES.includes(roleName);
@@ -245,17 +257,38 @@ export default function Layout() {
 
     const initials = user ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : 'U';
     const closeSidebar = () => setSidebarOpen(false);
+    const toggleSidebarCollapsed = () => {
+        setSidebarCollapsed((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem('sidebarCollapsed', String(next));
+            } catch {
+                // Ignore storage errors (private mode, disabled storage, etc.)
+            }
+            return next;
+        });
+    };
 
     return (
         <div className="app-layout">
             {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
 
-            <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+            <aside className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
                 <div className="sidebar-brand">
-                    <img src="/logo.png" alt="Logo" className="logo" style={{ width: '36px', height: '36px', background: 'transparent', color: 'transparent', flexShrink: 0, objectFit: 'contain', padding: 0, borderRadius: 0, boxShadow: 'none' }} />
-                    <div>
-                        <h2>GovernX</h2>
+                    <div className="sidebar-brand-left">
+                        <img src="/logo.png" alt="Logo" className="logo" style={{ width: '36px', height: '36px', background: 'transparent', color: 'transparent', flexShrink: 0, objectFit: 'contain', padding: 0, borderRadius: 0, boxShadow: 'none' }} />
+                        <div>
+                            <h2>GovernX</h2>
+                        </div>
                     </div>
+                    <button
+                        className="sidebar-brand-toggle"
+                        onClick={toggleSidebarCollapsed}
+                        title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    >
+                        {sidebarCollapsed ? <HiOutlineChevronRight /> : <HiOutlineChevronLeft />}
+                    </button>
                 </div>
 
                 <nav className="sidebar-nav">
@@ -269,9 +302,11 @@ export default function Layout() {
                                 end={item.path === '/'}
                                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                                 onClick={closeSidebar}
+                                data-tooltip={item.label}
+                                title={item.label}
                             >
                                 <span className="icon"><item.icon /></span>
-                                {item.label}
+                                <span className="nav-label">{item.label}</span>
                             </NavLink>
                         ))}
                     </div>

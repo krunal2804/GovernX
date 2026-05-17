@@ -120,13 +120,109 @@ a:hover {
   z-index: 100;
 }
 
+.sidebar.collapsed {
+  width: 84px;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar.collapsed .sidebar-brand .sidebar-brand-left {
+  width: 100%;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-brand h2,
+.sidebar.collapsed .sidebar-section-title,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sidebar-user .user-info,
+.sidebar.collapsed .sidebar-accordion-chevron-btn,
+.sidebar.collapsed .sidebar-accordion-body {
+  display: none;
+}
+
+.sidebar.collapsed .nav-link {
+  justify-content: center;
+  padding: 10px 8px;
+}
+
+.sidebar.collapsed .sidebar-accordion-nav-label {
+  border-radius: var(--radius-sm) !important;
+}
+
+.sidebar.collapsed .sidebar-user {
+  justify-content: center;
+  padding: 12px 8px;
+}
+
+.sidebar.collapsed .sidebar-brand-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar.collapsed .sidebar-brand:hover .sidebar-brand-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar.collapsed .sidebar-brand:focus-within .sidebar-brand-toggle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@supports selector(.sidebar-brand:has(.logo:hover)) {
+  .sidebar.collapsed .sidebar-brand:hover .sidebar-brand-toggle {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sidebar.collapsed .sidebar-brand:has(.logo:hover) .sidebar-brand-toggle {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .sidebar-brand {
   height: var(--topbar-height);
   padding: 0 24px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  position: relative;
+}
+
+.sidebar-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sidebar-brand-toggle {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sidebar-brand-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .sidebar-brand .logo {
@@ -159,6 +255,7 @@ a:hover {
   flex: 1;
   padding: 12px;
   overflow-y: auto;
+  overflow-x: visible;
 }
 
 .sidebar-section {
@@ -207,6 +304,35 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.sidebar.collapsed .nav-link {
+  position: relative;
+}
+
+.sidebar.collapsed .nav-link::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--text-primary);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 250;
+}
+
+.sidebar.collapsed .nav-link:hover::after {
+  opacity: 1;
 }
 
 /* ── Sidebar Accordion (My Assignments / My Projects) ─────────── */
@@ -1518,6 +1644,10 @@ select.form-control {
 }
 
 @media (max-width: 768px) {
+  .sidebar-brand-toggle {
+    display: none;
+  }
+
   .sidebar {
     position: fixed;
     left: -100%;
