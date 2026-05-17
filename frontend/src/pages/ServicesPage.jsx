@@ -377,7 +377,7 @@ export default function ServicesPage() {
                                             <HiOutlinePlus /> Add Step
                                         </button>
                                         <button className="btn btn-secondary btn-sm" onClick={openBulkModal}>
-                                            <HiOutlineTable /> Import from Excel
+                                            <HiOutlineDocumentAdd /> Import Excel
                                         </button>
                                         <button className="btn btn-secondary btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => handleDelete('service', serviceDetails.id)}>
                                             <HiOutlineTrash /> Delete Service
