@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -225,50 +225,116 @@ export default function ProjectActionPlansPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(selectedPlan.categories || []).map((category) => {
-                                            const rowSpan = Math.max(1, (category.particulars || []).length);
-                                            return (category.particulars || []).map((particular, index) => (
-                                                <tr key={particular.id}>
-                                                    {index === 0 && (
-                                                        <td 
-                                                            rowSpan={rowSpan} 
-                                                            style={{ verticalAlign: 'middle', fontWeight: 700, backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}
-                                                        >
-                                                            {category.name || '-'}
-                                                        </td>
-                                                    )}
-                                                    <td style={{ fontWeight: 500 }}>{particular.name}</td>
-                                                    <td>
-                                                        {isClient ? (
-                                                            <span style={{ fontWeight: 700, color: particular.score_out_of_5 ? 'var(--primary)' : 'inherit' }}>
-                                                                {particular.score_out_of_5 ?? '-'}
-                                                            </span>
-                                                        ) : (
-                                                            <select
-                                                                className="form-control"
-                                                                style={{ padding: '6px 8px', height: '34px', fontWeight: 600 }}
-                                                                value={pendingScores[particular.id] !== undefined ? (pendingScores[particular.id] ?? '') : (particular.score_out_of_5 ?? '')}
-                                                                onChange={(e) => handleScoreChange(particular.id, e.target.value)}
-                                                            >
-                                                                <option value="">-</option>
-                                                                {[0, 1, 2, 3, 4, 5].map((s) => (
-                                                                    <option key={s} value={s}>{s}</option>
+                                        {(() => {
+                                            let globalTotal = 0;
+                                            let globalMax = 0;
+
+                                            return (
+                                                <>
+                                                    {(selectedPlan.categories || []).map((category) => {
+                                                        const particulars = category.particulars || [];
+                                                        const rowSpan = Math.max(1, particulars.length) + 3;
+                                                        
+                                                        let catTotalScore = 0;
+                                                        particulars.forEach(p => {
+                                                            const val = pendingScores[p.id] !== undefined ? pendingScores[p.id] : p.score_out_of_5;
+                                                            if (val !== null && val !== '') catTotalScore += Number(val);
+                                                        });
+                                                        const catMaxScore = particulars.length * 5;
+                                                        const catPercentage = catMaxScore > 0 ? ((catTotalScore / catMaxScore) * 100).toFixed(2) : '0.00';
+                                                        
+                                                        globalTotal += catTotalScore;
+                                                        globalMax += catMaxScore;
+
+                                                        return (
+                                                            <Fragment key={category.id}>
+                                                                {particulars.map((particular, index) => (
+                                                                    <tr key={particular.id}>
+                                                                        {index === 0 && (
+                                                                            <td 
+                                                                                rowSpan={rowSpan} 
+                                                                                style={{ verticalAlign: 'middle', fontWeight: 700, backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}
+                                                                            >
+                                                                                {category.name || '-'}
+                                                                            </td>
+                                                                        )}
+                                                                        <td style={{ fontWeight: 500 }}>{particular.name}</td>
+                                                                        <td>
+                                                                            {isClient ? (
+                                                                                <span style={{ fontWeight: 700, color: particular.score_out_of_5 ? 'var(--primary)' : 'inherit' }}>
+                                                                                    {particular.score_out_of_5 ?? '-'}
+                                                                                </span>
+                                                                            ) : (
+                                                                                <select
+                                                                                    className="form-control"
+                                                                                    style={{ padding: '6px 8px', height: '34px', fontWeight: 600 }}
+                                                                                    value={pendingScores[particular.id] !== undefined ? (pendingScores[particular.id] ?? '') : (particular.score_out_of_5 ?? '')}
+                                                                                    onChange={(e) => handleScoreChange(particular.id, e.target.value)}
+                                                                                >
+                                                                                    <option value="">-</option>
+                                                                                    {[0, 1, 2, 3, 4, 5].map((s) => (
+                                                                                        <option key={s} value={s}>{s}</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                            )}
+                                                                        </td>
+                                                                        <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                                            {particular.score_updated_at ? new Date(particular.score_updated_at).toLocaleString(undefined, {
+                                                                                year: 'numeric',
+                                                                                month: 'numeric',
+                                                                                day: 'numeric',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
+                                                                            }) : '-'}
+                                                                        </td>
+                                                                    </tr>
                                                                 ))}
-                                                            </select>
-                                                        )}
-                                                    </td>
-                                                    <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                                        {particular.score_updated_at ? new Date(particular.score_updated_at).toLocaleString(undefined, {
-                                                            year: 'numeric',
-                                                            month: 'numeric',
-                                                            day: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        }) : '-'}
-                                                    </td>
-                                                </tr>
-                                            ));
-                                        })}
+                                                                
+                                                                {/* Category Summaries */}
+                                                                <tr style={{ background: 'var(--bg-secondary)', fontWeight: 600 }}>
+                                                                    {particulars.length === 0 && (
+                                                                        <td rowSpan={rowSpan} style={{ verticalAlign: 'middle', fontWeight: 700, backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}>
+                                                                            {category.name || '-'}
+                                                                        </td>
+                                                                    )}
+                                                                    <td>Total score</td>
+                                                                    <td colSpan={2}>{catTotalScore}</td>
+                                                                </tr>
+                                                                <tr style={{ background: 'var(--bg-secondary)', fontWeight: 600 }}>
+                                                                    <td>Maximum Score</td>
+                                                                    <td colSpan={2}>{catMaxScore}</td>
+                                                                </tr>
+                                                                <tr style={{ background: 'var(--bg-secondary)', fontWeight: 600 }}>
+                                                                    <td>Top Management Commitment</td>
+                                                                    <td colSpan={2} style={{ color: 'var(--primary)' }}>{catPercentage}%</td>
+                                                                </tr>
+                                                            </Fragment>
+                                                        );
+                                                    })}
+
+                                                    {/* Global Summaries */}
+                                                    {(() => {
+                                                        const globalPercentage = globalMax > 0 ? ((globalTotal / globalMax) * 100).toFixed(2) : '0.00';
+                                                        return (
+                                                            <>
+                                                                <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
+                                                                    <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>TOTAL MARKS ACHIEVED</td>
+                                                                    <td colSpan={2}>{globalTotal}</td>
+                                                                </tr>
+                                                                <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
+                                                                    <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>TOTAL MARKS</td>
+                                                                    <td colSpan={2}>{globalMax}</td>
+                                                                </tr>
+                                                                <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
+                                                                    <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>COMMITMENT SCORE</td>
+                                                                    <td colSpan={2} style={{ color: 'var(--primary)' }}>{globalPercentage}%</td>
+                                                                </tr>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </>
+                                            );
+                                        })()}
                                     </tbody>
                                 </table>
                             </div>
