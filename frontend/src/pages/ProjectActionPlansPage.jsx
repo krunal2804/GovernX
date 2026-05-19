@@ -302,9 +302,9 @@ export default function ProjectActionPlansPage() {
                                                                                     value={currentScore ?? ''}
                                                                                     onChange={(e) => handleScoreChange(particular.id, e.target.value)}
                                                                                 >
-                                                                                    <option value="">-</option>
+                                                                                    <option value="" style={{ color: '#1e293b' }}>-</option>
                                                                                     {[0, 1, 2, 3, 4, 5].map((s) => (
-                                                                                        <option key={s} value={s}>{s}</option>
+                                                                                        <option key={s} value={s} style={{ color: '#1e293b' }}>{s}</option>
                                                                                     ))}
                                                                                 </select>
                                                                             )}
