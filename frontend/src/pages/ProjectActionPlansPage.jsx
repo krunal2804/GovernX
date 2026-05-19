@@ -188,7 +188,7 @@ export default function ProjectActionPlansPage() {
                                 </div>
                             </div>
                             <div style={{ padding: '16px', overflowX: 'auto' }}>
-                                <table>
+                                <table className="bordered-table">
                                     <thead>
                                         <tr>
                                             <th style={{ width: '22%' }}>Category</th>

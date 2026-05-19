@@ -1686,3 +1686,10 @@ select.form-control {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Added for Action Plan bordered tables */
+.bordered-table th:not(:last-child),
+.bordered-table td:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
