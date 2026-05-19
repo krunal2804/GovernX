@@ -21,6 +21,8 @@ export default function ProjectActionPlansPage() {
     const [sendModal, setSendModal] = useState(false);
     const [sendForm, setSendForm] = useState({ action_plan_template_id: '', title: '', notes: '' });
     const [sending, setSending] = useState(false);
+    const [pendingScores, setPendingScores] = useState({});
+    const [savingScores, setSavingScores] = useState(false);
 
     const fetchBaseData = async () => {
         setLoading(true);
@@ -69,6 +71,7 @@ export default function ProjectActionPlansPage() {
     }, [id]);
 
     useEffect(() => {
+        setPendingScores({});
         loadPlanDetail(selectedPlanId);
     }, [selectedPlanId]);
 
@@ -106,14 +109,31 @@ export default function ProjectActionPlansPage() {
         }
     };
 
-    const updateScore = async (particularId, value) => {
-        try {
-            await api.put(`/projects/${id}/action-plans/${selectedPlanId}/particulars/${particularId}/score`, {
-                score_out_of_5: Number(value),
+    const handleScoreChange = (particularId, value) => {
+        setPendingScores(prev => ({
+            ...prev,
+            [particularId]: value === '' ? null : Number(value)
+        }));
+    };
+
+    const savePendingScores = async () => {
+        const updates = Object.keys(pendingScores).map(pId => {
+            return api.put(`/projects/${id}/action-plans/${selectedPlanId}/particulars/${pId}/score`, {
+                score_out_of_5: pendingScores[pId]
             });
+        });
+        
+        if (updates.length === 0) return;
+
+        setSavingScores(true);
+        try {
+            await Promise.all(updates);
             await loadPlanDetail(selectedPlanId);
+            setPendingScores({});
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to update score.');
+            alert(err.response?.data?.error || 'Failed to update some scores.');
+        } finally {
+            setSavingScores(false);
         }
     };
 
@@ -180,12 +200,19 @@ export default function ProjectActionPlansPage() {
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                     {selectedPlan ? (
                         <div>
-                            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                                <div style={{ fontSize: '20px', fontWeight: 700 }}>{selectedPlan.title}</div>
-                                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                    Sent: {selectedPlan.sent_at ? new Date(selectedPlan.sent_at).toLocaleString() : '-'}
-                                    {selectedPlan.sent_by_name ? ` by ${selectedPlan.sent_by_name}` : ''}
+                            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontSize: '20px', fontWeight: 700 }}>{selectedPlan.title}</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                        Sent: {selectedPlan.sent_at ? new Date(selectedPlan.sent_at).toLocaleString() : '-'}
+                                        {selectedPlan.sent_by_name ? ` by ${selectedPlan.sent_by_name}` : ''}
+                                    </div>
                                 </div>
+                                {!isClient && Object.keys(pendingScores).length > 0 && (
+                                    <button className="btn btn-primary btn-sm" onClick={savePendingScores} disabled={savingScores}>
+                                        {savingScores ? 'Saving...' : 'Update Changes'}
+                                    </button>
+                                )}
                             </div>
                             <div style={{ padding: '16px', overflowX: 'auto' }}>
                                 <table className="bordered-table">
@@ -220,8 +247,8 @@ export default function ProjectActionPlansPage() {
                                                             <select
                                                                 className="form-control"
                                                                 style={{ padding: '6px 8px', height: '34px', fontWeight: 600 }}
-                                                                value={particular.score_out_of_5 ?? ''}
-                                                                onChange={(e) => updateScore(particular.id, e.target.value)}
+                                                                value={pendingScores[particular.id] !== undefined ? (pendingScores[particular.id] ?? '') : (particular.score_out_of_5 ?? '')}
+                                                                onChange={(e) => handleScoreChange(particular.id, e.target.value)}
                                                             >
                                                                 <option value="">-</option>
                                                                 {[0, 1, 2, 3, 4, 5].map((s) => (
