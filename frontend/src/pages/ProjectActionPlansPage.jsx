@@ -5,6 +5,25 @@ import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/Breadcrumb';
 import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX } from 'react-icons/hi';
 
+const getScoreColor = (score) => {
+    if (score === null || score === undefined || score === '') return undefined;
+    const s = Number(score);
+    if (s === 5) return '#22c55e'; // green
+    if (s === 4) return '#86efac'; // light green
+    if (s === 3) return '#fde047'; // yellow
+    if (s === 2) return '#fca5a5'; // light red
+    if (s === 1) return '#ef4444'; // red
+    return undefined;
+};
+
+const getScoreTextColor = (score) => {
+    if (score === null || score === undefined || score === '') return undefined;
+    const s = Number(score);
+    if (s === 5 || s === 1) return '#ffffff';
+    if (s === 4 || s === 3 || s === 2) return '#1e293b';
+    return undefined;
+};
+
 export default function ProjectActionPlansPage() {
     const { id } = useParams();
     const location = useLocation();
@@ -248,7 +267,12 @@ export default function ProjectActionPlansPage() {
 
                                                         return (
                                                             <Fragment key={category.id}>
-                                                                {particulars.map((particular, index) => (
+                                                                {particulars.map((particular, index) => {
+                                                                    const currentScore = pendingScores[particular.id] !== undefined ? pendingScores[particular.id] : particular.score_out_of_5;
+                                                                    const cellBg = getScoreColor(currentScore);
+                                                                    const cellText = getScoreTextColor(currentScore);
+                                                                    
+                                                                    return (
                                                                     <tr key={particular.id}>
                                                                         {index === 0 && (
                                                                             <td 
@@ -259,16 +283,23 @@ export default function ProjectActionPlansPage() {
                                                                             </td>
                                                                         )}
                                                                         <td style={{ fontWeight: 500 }}>{particular.name}</td>
-                                                                        <td>
+                                                                        <td style={{ backgroundColor: cellBg, color: cellText, transition: 'all 0.2s' }}>
                                                                             {isClient ? (
-                                                                                <span style={{ fontWeight: 700, color: particular.score_out_of_5 ? 'var(--primary)' : 'inherit' }}>
-                                                                                    {particular.score_out_of_5 ?? '-'}
+                                                                                <span style={{ fontWeight: 800 }}>
+                                                                                    {currentScore ?? '-'}
                                                                                 </span>
                                                                             ) : (
                                                                                 <select
                                                                                     className="form-control"
-                                                                                    style={{ padding: '6px 8px', height: '34px', fontWeight: 600 }}
-                                                                                    value={pendingScores[particular.id] !== undefined ? (pendingScores[particular.id] ?? '') : (particular.score_out_of_5 ?? '')}
+                                                                                    style={{ 
+                                                                                        padding: '6px 8px', 
+                                                                                        height: '34px', 
+                                                                                        fontWeight: 600, 
+                                                                                        backgroundColor: cellBg ? 'rgba(255,255,255,0.4)' : undefined,
+                                                                                        color: 'inherit',
+                                                                                        borderColor: cellBg ? 'rgba(0,0,0,0.1)' : undefined
+                                                                                    }}
+                                                                                    value={currentScore ?? ''}
                                                                                     onChange={(e) => handleScoreChange(particular.id, e.target.value)}
                                                                                 >
                                                                                     <option value="">-</option>
@@ -288,7 +319,7 @@ export default function ProjectActionPlansPage() {
                                                                             }) : '-'}
                                                                         </td>
                                                                     </tr>
-                                                                ))}
+                                                                )})}
                                                                 
                                                                 {/* Category Summaries */}
                                                                 <tr style={{ background: 'var(--bg-secondary)', fontWeight: 600 }}>
