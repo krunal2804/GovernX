@@ -193,7 +193,7 @@ export default function ProjectActionPlansPage() {
                                         <tr>
                                             <th style={{ width: '22%' }}>Category</th>
                                             <th>Particular</th>
-                                            <th style={{ width: '120px' }}>Score (/5)</th>
+                                            <th style={{ width: '120px' }}>Score</th>
                                             <th style={{ width: '200px' }}>Updated At</th>
                                         </tr>
                                     </thead>
@@ -231,7 +231,13 @@ export default function ProjectActionPlansPage() {
                                                         )}
                                                     </td>
                                                     <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                                        {particular.score_updated_at ? new Date(particular.score_updated_at).toLocaleString() : '-'}
+                                                        {particular.score_updated_at ? new Date(particular.score_updated_at).toLocaleString(undefined, {
+                                                            year: 'numeric',
+                                                            month: 'numeric',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        }) : '-'}
                                                     </td>
                                                 </tr>
                                             ));
