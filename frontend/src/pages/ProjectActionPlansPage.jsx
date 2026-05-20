@@ -436,6 +436,7 @@ export default function ProjectActionPlansPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
                     </>
                 ) : selectedPlan ? (
                     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
