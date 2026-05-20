@@ -222,11 +222,12 @@ export default function ProjectActionPlansPage() {
 
         // If there's only 1 plan, Recharts draws a single dot, no line. 
         // Duplicate the point to create a visible flat line spanning the chart.
+        // Use unique spaces for name so X-axis treats them as distinct categories.
         if (chartData.length === 1) {
             chartData = [
-                { ...chartData[0], name: '' },
+                { ...chartData[0], name: ' ' },
                 chartData[0],
-                { ...chartData[0], name: '' }
+                { ...chartData[0], name: '  ' }
             ];
         }
 
@@ -381,16 +382,40 @@ export default function ProjectActionPlansPage() {
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={summaryData.chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                                                <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 13 }} tickMargin={12} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
-                                                <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 13 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
+                                                <XAxis 
+                                                    dataKey="name" 
+                                                    tick={{ fill: 'var(--text-muted)', fontSize: 12 }} 
+                                                    tickMargin={12} 
+                                                    axisLine={{ stroke: 'var(--border)' }} 
+                                                    tickLine={false}
+                                                    tickFormatter={(v) => v.trim().length > 12 ? v.substring(0, 12) + '...' : v} 
+                                                />
+                                                <YAxis 
+                                                    domain={[0, 100]} 
+                                                    tick={{ fill: 'var(--text-muted)', fontSize: 13 }} 
+                                                    axisLine={false} 
+                                                    tickLine={false} 
+                                                    tickFormatter={(v) => `${v}%`} 
+                                                    width={40} 
+                                                />
                                                 <Tooltip 
-                                                    contentStyle={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}
-                                                    itemStyle={{ color: 'var(--primary)', fontWeight: 700 }}
+                                                    contentStyle={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                    itemStyle={{ color: '#3b82f6', fontWeight: 700 }}
                                                     formatter={(value) => [`${value}%`, 'Commitment']}
                                                     labelStyle={{ color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px' }}
-                                                    labelFormatter={(label, payload) => payload?.[0]?.payload?.name || label}
+                                                    labelFormatter={(label, payload) => {
+                                                        const date = payload?.[0]?.payload?.date;
+                                                        return date && date !== '-' && label.trim().length > 0 ? `${label} (${date})` : label;
+                                                    }}
                                                 />
-                                                <Line type="monotone" dataKey="percentage" stroke="var(--primary)" strokeWidth={3} dot={{ r: 6, fill: 'var(--primary)', stroke: 'var(--bg-primary)', strokeWidth: 2 }} activeDot={{ r: 8, strokeWidth: 0 }} />
+                                                <Line 
+                                                    type="linear" 
+                                                    dataKey="percentage" 
+                                                    stroke="#3b82f6" 
+                                                    strokeWidth={3} 
+                                                    dot={{ r: 5, fill: '#3b82f6', stroke: 'var(--bg-primary)', strokeWidth: 2 }} 
+                                                    activeDot={{ r: 7, strokeWidth: 0, fill: '#2563eb' }} 
+                                                />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     </div>
