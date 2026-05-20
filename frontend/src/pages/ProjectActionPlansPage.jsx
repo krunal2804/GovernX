@@ -43,11 +43,8 @@ const GaugeChart = ({ percentage }) => {
                     <circle cx="98" cy="98" r="3" fill="rgba(255,255,255,0.4)" />
                 </g>
             </svg>
-            <div style={{ position: 'absolute', top: '15px', right: '10px', fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {percentage.toFixed(0)}%
-            </div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '0px' }}>
-                Client Commitment
+            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '10px' }}>
+                Client Commitment : <span style={{ color: 'var(--text-primary)' }}>{percentage.toFixed(0)}%</span>
             </div>
         </div>
     );
