@@ -166,9 +166,15 @@ export default function ProjectActionPlansPage() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/projects/${id}`, { state: { from: '/projects' } })}>
-                        <HiOutlineArrowLeft /> Back
-                    </button>
+                    {selectedPlanId ? (
+                        <button className="btn btn-secondary btn-sm" onClick={() => setSelectedPlanId(null)}>
+                            <HiOutlineArrowLeft /> Back to Plans
+                        </button>
+                    ) : (
+                        <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/projects/${id}`, { state: { from: '/projects' } })}>
+                            <HiOutlineArrowLeft /> Back to Project
+                        </button>
+                    )}
                     <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>Project Action Plans</h1>
                 </div>
                 {!isClient && (
@@ -235,9 +241,6 @@ export default function ProjectActionPlansPage() {
                         <div>
                             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <button className="btn btn-secondary btn-sm" onClick={() => setSelectedPlanId(null)}>
-                                        <HiOutlineArrowLeft /> Back to Plans
-                                    </button>
                                     <div>
                                         <div style={{ fontSize: '20px', fontWeight: 700 }}>{selectedPlan.title}</div>
                                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
