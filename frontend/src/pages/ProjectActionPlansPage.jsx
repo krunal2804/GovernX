@@ -126,6 +126,8 @@ export default function ProjectActionPlansPage() {
     const [sending, setSending] = useState(false);
     const [pendingScores, setPendingScores] = useState({});
     const [savingScores, setSavingScores] = useState(false);
+    const [unsavedModal, setUnsavedModal] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState(null);
 
     const fetchBaseData = async () => {
         setLoading(true);
@@ -247,6 +249,26 @@ export default function ProjectActionPlansPage() {
         }));
     };
 
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (Object.keys(pendingScores).length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [pendingScores]);
+
+    const handleBackClick = (action) => {
+        if (Object.keys(pendingScores).length > 0) {
+            setPendingNavigation(() => action);
+            setUnsavedModal(true);
+        } else {
+            action();
+        }
+    };
+
     const savePendingScores = async () => {
         const updates = Object.keys(pendingScores).map(pId => {
             return api.put(`/projects/${id}/action-plans/${selectedPlanId}/particulars/${pId}/score`, {
@@ -284,11 +306,11 @@ export default function ProjectActionPlansPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {selectedPlanId ? (
-                        <button className="btn btn-secondary btn-sm" onClick={() => setSelectedPlanId(null)}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleBackClick(() => setSelectedPlanId(null))}>
                             <HiOutlineArrowLeft /> Back to Plans
                         </button>
                     ) : (
-                        <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/projects/${id}`, { state: { from: '/projects' } })}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleBackClick(() => navigate(`/projects/${id}`, { state: { from: '/projects' } }))}>
                             <HiOutlineArrowLeft /> Back to Project
                         </button>
                     )}
@@ -371,11 +393,6 @@ export default function ProjectActionPlansPage() {
                                         </div>
                                     </div>
                                 </div>
-                                {!isClient && Object.keys(pendingScores).length > 0 && (
-                                    <button className="btn btn-primary btn-sm" onClick={savePendingScores} disabled={savingScores}>
-                                        {savingScores ? 'Saving...' : 'Update Changes'}
-                                    </button>
-                                )}
                             </div>
                             
                             {metrics && (
@@ -569,6 +586,47 @@ export default function ProjectActionPlansPage() {
                                 <button type="submit" className="btn btn-primary" disabled={sending}>{sending ? 'Sending...' : 'Send Action Plan'}</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {!isClient && Object.keys(pendingScores).length > 0 && (
+                <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000, display: 'flex', gap: '12px', animation: 'fadeInUp 0.3s ease-out' }}>
+                    <button className="btn btn-secondary" onClick={() => setPendingScores({})}>
+                        Cancel
+                    </button>
+                    <button className="btn btn-primary" onClick={savePendingScores} disabled={savingScores} style={{ padding: '12px 24px', fontSize: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', borderRadius: '100px' }}>
+                        {savingScores ? 'Saving...' : 'Update Changes'}
+                    </button>
+                </div>
+            )}
+
+            {unsavedModal && (
+                <div className="modal-overlay" onClick={() => setUnsavedModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Unsaved Changes</h2>
+                            <button className="btn-icon" onClick={() => setUnsavedModal(false)}><HiOutlineX /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '24px 20px', fontSize: '15px' }}>
+                            <p>You have unsaved score changes. Do you want to save them before leaving?</p>
+                        </div>
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '16px 20px', borderTop: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+                            <button className="btn btn-secondary" onClick={() => {
+                                setUnsavedModal(false);
+                                setPendingScores({});
+                                if (pendingNavigation) pendingNavigation();
+                            }}>
+                                Discard Changes
+                            </button>
+                            <button className="btn btn-primary" onClick={async () => {
+                                await savePendingScores();
+                                setUnsavedModal(false);
+                                if (pendingNavigation) pendingNavigation();
+                            }}>
+                                Save & Leave
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
