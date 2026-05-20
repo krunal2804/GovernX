@@ -592,11 +592,11 @@ export default function ProjectActionPlansPage() {
 
             {!isClient && Object.keys(pendingScores).length > 0 && (
                 <div style={{ position: 'fixed', bottom: '30px', right: '30px', zIndex: 1000, display: 'flex', gap: '12px', animation: 'fadeInUp 0.3s ease-out' }}>
-                    <button className="btn btn-secondary" onClick={() => setPendingScores({})} style={{ padding: '12px 24px', fontSize: '16px', borderRadius: '100px', background: 'var(--bg-primary)', boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}>
-                        Cancel
-                    </button>
-                    <button className="btn btn-primary" onClick={savePendingScores} disabled={savingScores} style={{ padding: '12px 24px', fontSize: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', borderRadius: '100px' }}>
+                    <button className="btn btn-primary" onClick={savePendingScores} disabled={savingScores} style={{ padding: '8px 16px', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 'var(--radius-md)' }}>
                         {savingScores ? 'Saving...' : 'Update Changes'}
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => setPendingScores({})} style={{ padding: '8px 16px', fontSize: '14px', borderRadius: 'var(--radius-md)', background: 'var(--bg-primary)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                        Cancel
                     </button>
                 </div>
             )}
