@@ -43,11 +43,7 @@ const GaugeChart = ({ percentage, small = false }) => {
                     <circle cx="98" cy="98" r="3" fill="rgba(255,255,255,0.4)" />
                 </g>
             </svg>
-            {small ? (
-                <div style={{ position: 'absolute', top: '15px', right: '5px', fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {percentage.toFixed(0)}%
-                </div>
-            ) : (
+            {!small && (
                 <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '10px' }}>
                     Client Commitment : <span style={{ color: 'var(--text-primary)' }}>{percentage.toFixed(0)}%</span>
                 </div>
@@ -351,7 +347,9 @@ export default function ProjectActionPlansPage() {
                                         <div style={{ width: '120px', margin: '0 auto 12px', opacity: 0.9 }}>
                                             <GaugeChart percentage={Number(plan.overall_percentage || 0)} small={true} />
                                         </div>
-                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '16px', textAlign: 'center' }}>{plan.title}</div>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '16px', textAlign: 'center' }}>
+                                            {plan.title} : <span style={{ color: 'var(--primary)' }}>{Number(plan.overall_percentage || 0).toFixed(0)}%</span>
+                                        </div>
                                         <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>
                                             Sent: {plan.sent_at ? new Date(plan.sent_at).toLocaleDateString() : '-'}
                                         </div>
