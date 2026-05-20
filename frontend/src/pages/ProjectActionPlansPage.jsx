@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import api from '../utils/api';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/Breadcrumb';
 import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX } from 'react-icons/hi';
