@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/Breadcrumb';
 import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX } from 'react-icons/hi';
 
-const GaugeChart = ({ percentage }) => {
+const GaugeChart = ({ percentage, small = false }) => {
     const strokeWidth = 30;
     const cx = 100;
     const cy = 100;
@@ -28,13 +28,13 @@ const GaugeChart = ({ percentage }) => {
                 <path d="M 164.72 53.04 A 80 80 0 0 1 180 100" fill="none" stroke="#22c55e" strokeWidth={strokeWidth} />
 
                 {/* White gaps to separate segments */}
-                <g stroke="#ffffff" strokeWidth="3">
+                <g stroke={small ? "var(--bg-secondary)" : "#ffffff"} strokeWidth="3">
                     <line x1="100" y1="100" x2="20" y2="100" transform="rotate(36, 100, 100)" />
                     <line x1="100" y1="100" x2="20" y2="100" transform="rotate(72, 100, 100)" />
                     <line x1="100" y1="100" x2="20" y2="100" transform="rotate(108, 100, 100)" />
                     <line x1="100" y1="100" x2="20" y2="100" transform="rotate(144, 100, 100)" />
                 </g>
-                <circle cx="100" cy="100" r="64" fill="#ffffff" />
+                <circle cx="100" cy="100" r="64" fill={small ? "var(--bg-secondary)" : "#ffffff"} />
 
                 {/* Needle */}
                 <g transform={`rotate(${angle}, ${cx}, ${cy})`} style={{ transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -43,9 +43,15 @@ const GaugeChart = ({ percentage }) => {
                     <circle cx="98" cy="98" r="3" fill="rgba(255,255,255,0.4)" />
                 </g>
             </svg>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '10px' }}>
-                Client Commitment : <span style={{ color: 'var(--text-primary)' }}>{percentage.toFixed(0)}%</span>
-            </div>
+            {small ? (
+                <div style={{ position: 'absolute', top: '15px', right: '5px', fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {percentage.toFixed(0)}%
+                </div>
+            ) : (
+                <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '10px' }}>
+                    Client Commitment : <span style={{ color: 'var(--text-primary)' }}>{percentage.toFixed(0)}%</span>
+                </div>
+            )}
         </div>
     );
 };
@@ -342,8 +348,11 @@ export default function ProjectActionPlansPage() {
                                             e.currentTarget.style.background = 'var(--bg-secondary)';
                                         }}
                                     >
-                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '16px' }}>{plan.title}</div>
-                                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                                        <div style={{ width: '120px', margin: '0 auto 12px', opacity: 0.9 }}>
+                                            <GaugeChart percentage={Number(plan.overall_percentage || 0)} small={true} />
+                                        </div>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '16px', textAlign: 'center' }}>{plan.title}</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>
                                             Sent: {plan.sent_at ? new Date(plan.sent_at).toLocaleDateString() : '-'}
                                         </div>
                                     </button>
