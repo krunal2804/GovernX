@@ -1,9 +1,94 @@
-import { useEffect, useState, Fragment } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import api from '../api';
+import React, { useState, useEffect, Fragment, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/Breadcrumb';
 import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX } from 'react-icons/hi';
+
+const GaugeChart = ({ percentage }) => {
+    const strokeWidth = 30;
+    const cx = 100;
+    const cy = 100;
+    // 0% -> -90deg, 100% -> 90deg
+    const angle = -90 + (percentage / 100) * 180;
+
+    return (
+        <div style={{ textAlign: 'center', position: 'relative', width: '100%', maxWidth: '300px', margin: '0 auto' }}>
+            <svg viewBox="0 0 200 120" style={{ width: '100%', overflow: 'visible' }}>
+                <defs>
+                    <filter id="shadow">
+                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.3" />
+                    </filter>
+                </defs>
+                {/* 5 colored segments */}
+                <path d="M 20 100 A 80 80 0 0 1 35.28 53.04" fill="none" stroke="#ef4444" strokeWidth={strokeWidth} />
+                <path d="M 35.28 53.04 A 80 80 0 0 1 75.28 23.92" fill="none" stroke="#fca5a5" strokeWidth={strokeWidth} />
+                <path d="M 75.28 23.92 A 80 80 0 0 1 124.72 23.92" fill="none" stroke="#fde047" strokeWidth={strokeWidth} />
+                <path d="M 124.72 23.92 A 80 80 0 0 1 164.72 53.04" fill="none" stroke="#86efac" strokeWidth={strokeWidth} />
+                <path d="M 164.72 53.04 A 80 80 0 0 1 180 100" fill="none" stroke="#22c55e" strokeWidth={strokeWidth} />
+
+                {/* White gaps to separate segments */}
+                <g stroke="#ffffff" strokeWidth="3">
+                    <line x1="100" y1="100" x2="20" y2="100" transform="rotate(36, 100, 100)" />
+                    <line x1="100" y1="100" x2="20" y2="100" transform="rotate(72, 100, 100)" />
+                    <line x1="100" y1="100" x2="20" y2="100" transform="rotate(108, 100, 100)" />
+                    <line x1="100" y1="100" x2="20" y2="100" transform="rotate(144, 100, 100)" />
+                </g>
+                <circle cx="100" cy="100" r="64" fill="#ffffff" />
+
+                {/* Needle */}
+                <g transform={`rotate(${angle}, ${cx}, ${cy})`} style={{ transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+                    <polygon points="96,100 104,100 100,25" fill="#475569" filter="url(#shadow)" />
+                    <circle cx="100" cy="100" r="10" fill="#334155" filter="url(#shadow)" />
+                    <circle cx="98" cy="98" r="3" fill="rgba(255,255,255,0.4)" />
+                </g>
+            </svg>
+            <div style={{ position: 'absolute', top: '15px', right: '10px', fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {percentage.toFixed(0)}%
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '0px' }}>
+                Client Commitment
+            </div>
+        </div>
+    );
+};
+
+const HorizontalBarCharts = ({ categories }) => {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', height: '12px', borderRadius: '2px', overflow: 'hidden', marginBottom: '4px', marginLeft: '232px', marginRight: '57px' }}>
+                <div style={{ flex: 1, backgroundColor: '#ef4444' }} />
+                <div style={{ flex: 1, backgroundColor: '#fca5a5' }} />
+                <div style={{ flex: 1, backgroundColor: '#fde047' }} />
+                <div style={{ flex: 1, backgroundColor: '#86efac' }} />
+                <div style={{ flex: 1, backgroundColor: '#22c55e' }} />
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {categories.map(cat => (
+                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '220px', fontSize: '13px', fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={cat.name}>
+                            {cat.name || 'Category'}
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ flex: 1, height: '30px', backgroundColor: 'var(--bg-secondary)', borderRadius: '2px', overflow: 'hidden' }}>
+                                <div style={{ 
+                                    height: '100%', 
+                                    width: `${cat.percentage}%`, 
+                                    background: 'linear-gradient(90deg, #0ea5e9, #1e3a8a)', 
+                                    transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                                }} />
+                            </div>
+                            <div style={{ width: '45px', fontSize: '14px', fontWeight: 700 }}>
+                                {cat.percentage.toFixed(0)}%
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const getScoreColor = (score) => {
     if (score === null || score === undefined || score === '') return undefined;
@@ -79,6 +164,39 @@ export default function ProjectActionPlansPage() {
             alert(err.response?.data?.error || 'Failed to load action plan templates.');
         }
     };
+
+    const metrics = useMemo(() => {
+        if (!selectedPlan || !selectedPlan.categories) return null;
+        
+        let globalTotal = 0;
+        let globalMax = 0;
+        const categories = selectedPlan.categories.map(cat => {
+            const particulars = cat.particulars || [];
+            let catTotal = 0;
+            particulars.forEach(p => {
+                const val = pendingScores[p.id] !== undefined ? pendingScores[p.id] : p.score_out_of_5;
+                if (val !== null && val !== '') catTotal += Number(val);
+            });
+            const catMax = particulars.length * 5;
+            const catPercentage = catMax > 0 ? (catTotal / catMax) * 100 : 0;
+            globalTotal += catTotal;
+            globalMax += catMax;
+            return {
+                id: cat.id,
+                name: cat.name,
+                total: catTotal,
+                max: catMax,
+                percentage: catPercentage
+            };
+        });
+        
+        return {
+            globalTotal,
+            globalMax,
+            globalPercentage: globalMax > 0 ? (globalTotal / globalMax) * 100 : 0,
+            categories
+        };
+    }, [selectedPlan, pendingScores]);
 
     useEffect(() => {
         fetchBaseData();
@@ -255,6 +373,18 @@ export default function ProjectActionPlansPage() {
                                     </button>
                                 )}
                             </div>
+                            
+                            {metrics && (
+                                <div style={{ padding: '32px 24px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: '48px', alignItems: 'center' }}>
+                                    <div style={{ flex: '0 0 320px' }}>
+                                        <GaugeChart percentage={metrics.globalPercentage} />
+                                    </div>
+                                    <div style={{ flex: '1 1 450px', minWidth: '400px' }}>
+                                        <HorizontalBarCharts categories={metrics.categories} />
+                                    </div>
+                                </div>
+                            )}
+
                             <div style={{ padding: '16px', overflowX: 'auto' }}>
                                 <table className="bordered-table">
                                     <thead>
@@ -267,25 +397,18 @@ export default function ProjectActionPlansPage() {
                                     </thead>
                                     <tbody>
                                         {(() => {
-                                            let globalTotal = 0;
-                                            let globalMax = 0;
-
+                                            if (!metrics) return null;
+                                            
                                             return (
                                                 <>
                                                     {(selectedPlan.categories || []).map((category) => {
                                                         const particulars = category.particulars || [];
                                                         const rowSpan = Math.max(1, particulars.length) + 3;
                                                         
-                                                        let catTotalScore = 0;
-                                                        particulars.forEach(p => {
-                                                            const val = pendingScores[p.id] !== undefined ? pendingScores[p.id] : p.score_out_of_5;
-                                                            if (val !== null && val !== '') catTotalScore += Number(val);
-                                                        });
-                                                        const catMaxScore = particulars.length * 5;
-                                                        const catPercentage = catMaxScore > 0 ? ((catTotalScore / catMaxScore) * 100).toFixed(2) : '0.00';
-                                                        
-                                                        globalTotal += catTotalScore;
-                                                        globalMax += catMaxScore;
+                                                        const catMetric = metrics.categories.find(c => c.id === category.id);
+                                                        const catTotalScore = catMetric?.total || 0;
+                                                        const catMaxScore = catMetric?.max || 0;
+                                                        const catPercentage = catMetric ? catMetric.percentage.toFixed(2) : '0.00';
 
                                                         return (
                                                             <Fragment key={category.id}>
@@ -366,25 +489,18 @@ export default function ProjectActionPlansPage() {
                                                     })}
 
                                                     {/* Global Summaries */}
-                                                    {(() => {
-                                                        const globalPercentage = globalMax > 0 ? ((globalTotal / globalMax) * 100).toFixed(2) : '0.00';
-                                                        return (
-                                                            <>
-                                                                <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
-                                                                    <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>TOTAL MARKS ACHIEVED</td>
-                                                                    <td colSpan={2}>{globalTotal}</td>
-                                                                </tr>
-                                                                <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
-                                                                    <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>TOTAL MARKS</td>
-                                                                    <td colSpan={2}>{globalMax}</td>
-                                                                </tr>
-                                                                <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
-                                                                    <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>COMMITMENT SCORE</td>
-                                                                    <td colSpan={2} style={{ color: 'var(--primary)' }}>{globalPercentage}%</td>
-                                                                </tr>
-                                                            </>
-                                                        );
-                                                    })()}
+                                                    <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
+                                                        <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>TOTAL MARKS ACHIEVED</td>
+                                                        <td colSpan={2}>{metrics.globalTotal}</td>
+                                                    </tr>
+                                                    <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
+                                                        <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>TOTAL MARKS</td>
+                                                        <td colSpan={2}>{metrics.globalMax}</td>
+                                                    </tr>
+                                                    <tr style={{ background: 'var(--accent-light)', fontWeight: 700 }}>
+                                                        <td colSpan={2} style={{ textAlign: 'right', borderRight: '1px solid var(--border)' }}>COMMITMENT SCORE</td>
+                                                        <td colSpan={2} style={{ color: 'var(--primary)' }}>{metrics.globalPercentage.toFixed(2)}%</td>
+                                                    </tr>
                                                 </>
                                             );
                                         })()}
