@@ -4,6 +4,7 @@ import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/Breadcrumb';
 import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX, HiOutlineInformationCircle } from 'react-icons/hi';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const GaugeChart = ({ percentage, small = false }) => {
     const strokeWidth = 30;
@@ -200,6 +201,31 @@ export default function ProjectActionPlansPage() {
         };
     }, [selectedPlan, pendingScores]);
 
+    const summaryData = useMemo(() => {
+        if (!plans || plans.length === 0) return { averagePercentage: 0, chartData: [] };
+        
+        let total = 0;
+        const chartData = [];
+        
+        // Plans are ordered descending from API. Reverse for chronological chart.
+        const sortedPlans = [...plans].reverse();
+
+        sortedPlans.forEach((plan) => {
+            const perc = Number(plan.overall_percentage || 0);
+            total += perc;
+            chartData.push({
+                name: plan.title,
+                percentage: Number(perc.toFixed(2)),
+                date: plan.sent_at ? new Date(plan.sent_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '-'
+            });
+        });
+
+        return {
+            averagePercentage: total / plans.length,
+            chartData
+        };
+    }, [plans]);
+
     useEffect(() => {
         fetchBaseData();
     }, [id]);
@@ -326,7 +352,37 @@ export default function ProjectActionPlansPage() {
 
             <div>
                 {!selectedPlanId ? (
-                    <div className="card" style={{ marginBottom: 0 }}>
+                    <>
+                        {plans.length > 0 && (
+                            <div className="card" style={{ marginBottom: '24px' }}>
+                                <div className="card-header">
+                                    <span className="card-title">Overall Commitment Summary</span>
+                                </div>
+                                <div style={{ padding: '32px 24px', display: 'flex', flexWrap: 'wrap', gap: '48px', alignItems: 'center' }}>
+                                    <div style={{ flex: '0 0 320px' }}>
+                                        <GaugeChart percentage={summaryData.averagePercentage} />
+                                    </div>
+                                    <div style={{ flex: '1 1 450px', minWidth: '400px', height: '250px' }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={summaryData.chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                                                <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 13 }} tickMargin={12} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                                                <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 13 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
+                                                <Tooltip 
+                                                    contentStyle={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}
+                                                    itemStyle={{ color: 'var(--primary)', fontWeight: 700 }}
+                                                    formatter={(value) => [`${value}%`, 'Commitment']}
+                                                    labelStyle={{ color: 'var(--text-primary)', fontWeight: 700, marginBottom: '6px' }}
+                                                    labelFormatter={(label, payload) => payload?.[0]?.payload?.name || label}
+                                                />
+                                                <Line type="monotone" dataKey="percentage" stroke="var(--primary)" strokeWidth={3} dot={{ r: 6, fill: 'var(--primary)', stroke: 'var(--bg-primary)', strokeWidth: 2 }} activeDot={{ r: 8, strokeWidth: 0 }} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div className="card" style={{ marginBottom: 0 }}>
                         <div className="card-header">
                             <span className="card-title">Sent Plans ({plans.length})</span>
                         </div>
@@ -380,7 +436,7 @@ export default function ProjectActionPlansPage() {
                                 ))}
                             </div>
                         )}
-                    </div>
+                    </>
                 ) : selectedPlan ? (
                     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                         <div>
