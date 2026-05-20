@@ -227,7 +227,7 @@ export default function ProjectActionPlansPage() {
                             </div>
                         )}
                     </div>
-                ) : (
+                ) : selectedPlan ? (
                     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                         <div>
                             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -386,6 +386,11 @@ export default function ProjectActionPlansPage() {
                                 </table>
                             </div>
                         </div>
+                    </div>
+                ) : (
+                    <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <div className="spinner" style={{ margin: '0 auto 16px', width: '32px', height: '32px' }} />
+                        Loading action plan details...
                     </div>
                 )}
             </div>
