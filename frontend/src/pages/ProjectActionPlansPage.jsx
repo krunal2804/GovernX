@@ -205,7 +205,7 @@ export default function ProjectActionPlansPage() {
         if (!plans || plans.length === 0) return { averagePercentage: 0, chartData: [] };
         
         let total = 0;
-        const chartData = [];
+        let chartData = [];
         
         // Plans are ordered descending from API. Reverse for chronological chart.
         const sortedPlans = [...plans].reverse();
@@ -219,6 +219,16 @@ export default function ProjectActionPlansPage() {
                 date: plan.sent_at ? new Date(plan.sent_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '-'
             });
         });
+
+        // If there's only 1 plan, Recharts draws a single dot, no line. 
+        // Duplicate the point to create a visible flat line spanning the chart.
+        if (chartData.length === 1) {
+            chartData = [
+                { ...chartData[0], name: '' },
+                chartData[0],
+                { ...chartData[0], name: '' }
+            ];
+        }
 
         return {
             averagePercentage: total / plans.length,
@@ -309,6 +319,11 @@ export default function ProjectActionPlansPage() {
         try {
             await Promise.all(updates);
             await loadPlanDetail(selectedPlanId);
+            
+            // Re-fetch action plans to update the overall percentages for the list and summary charts
+            const plansRes = await api.get(`/projects/${id}/action-plans`);
+            setPlans(plansRes.data || []);
+            
             setPendingScores({});
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to update some scores.');
