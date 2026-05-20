@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import Breadcrumb from '../components/Breadcrumb';
@@ -10,15 +10,19 @@ import {
     HiOutlineExclamationCircle,
     HiOutlineClipboardList,
     HiOutlineDocumentText,
-    HiOutlineLockClosed
+    HiOutlineLockClosed,
+    HiOutlinePaperAirplane
 } from 'react-icons/hi';
+import GaugeChart from '../components/GaugeChart';
 
 export default function ProjectDetailPage() {
     const { id } = useParams();
     const location = useLocation();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [actionPlanHistory, setActionPlanHistory] = useState([]);
     const [skipModalTask, setSkipModalTask] = useState(null);
     const [skipReason, setSkipReason] = useState('This task is Out of scope for this Project');
     const [skipSubmitting, setSkipSubmitting] = useState(false);
@@ -31,6 +35,12 @@ export default function ProjectDetailPage() {
     };
 
     useEffect(fetchProject, [id]);
+
+    useEffect(() => {
+        api.get(`/projects/${id}/action-plans`)
+            .then((r) => setActionPlanHistory(r.data || []))
+            .catch(() => setActionPlanHistory([]));
+    }, [id]);
 
     const updateTaskStatus = async (taskId, newStatus, extraPayload = {}) => {
         try {
@@ -107,6 +117,10 @@ export default function ProjectDetailPage() {
     const fromPath = location.state?.from || '/clients';
     const fromAssignmentId = location.state?.assignmentId;
     const fromAssignmentName = location.state?.assignmentName;
+
+    const averageCommitment = actionPlanHistory.length > 0 
+        ? actionPlanHistory.reduce((acc, plan) => acc + Number(plan.overall_percentage || 0), 0) / actionPlanHistory.length 
+        : 0;
 
     const getBreadcrumbItems = () => {
         if (fromPath === '/projects') {
@@ -348,6 +362,37 @@ export default function ProjectDetailPage() {
 
                 <div>
                     <div className="card" style={{ marginBottom: '20px' }}>
+                        <div className="card-header" style={{ marginBottom: '12px' }}>
+                            <span className="card-title">Action Plans Summary</span>
+                        </div>
+                        {actionPlanHistory.length > 0 && (
+                            <div style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid var(--border)' }}>
+                                <GaugeChart percentage={averageCommitment} />
+                            </div>
+                        )}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                            <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'var(--bg-hover)' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Sent</div>
+                                <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{actionPlanHistory.length}</div>
+                            </div>
+                            <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'var(--bg-hover)' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Latest Sent</div>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
+                                    {actionPlanHistory[0]?.sent_at ? new Date(actionPlanHistory[0].sent_at).toLocaleDateString() : '-'}
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => navigate(`/projects/${id}/action-plans`, { state: { autoOpenSend: true } })} disabled={user?.role_name === 'Client'}>
+                                <HiOutlinePaperAirplane /> Send New Action Plan
+                            </button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/projects/${id}/action-plans`)}>
+                                View Sent Action Plans
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="card" style={{ marginBottom: '20px' }}>
                         <div className="card-header">
                             <span className="card-title">Team Members ({project.members.length})</span>
                         </div>
@@ -437,5 +482,3 @@ export default function ProjectDetailPage() {
         </div>
     );
 }
-
-
