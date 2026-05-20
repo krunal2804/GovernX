@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/Breadcrumb';
-import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX } from 'react-icons/hi';
+import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX, HiOutlineInformationCircle } from 'react-icons/hi';
 
 const GaugeChart = ({ percentage, small = false }) => {
     const strokeWidth = 30;
@@ -128,6 +128,7 @@ export default function ProjectActionPlansPage() {
     const [savingScores, setSavingScores] = useState(false);
     const [unsavedModal, setUnsavedModal] = useState(false);
     const [pendingNavigation, setPendingNavigation] = useState(null);
+    const [keyToScoreModal, setKeyToScoreModal] = useState(false);
 
     const fetchBaseData = async () => {
         setLoading(true);
@@ -393,6 +394,9 @@ export default function ProjectActionPlansPage() {
                                         </div>
                                     </div>
                                 </div>
+                                <button className="btn btn-secondary btn-sm" onClick={() => setKeyToScoreModal(true)}>
+                                    <HiOutlineInformationCircle style={{ marginRight: '6px', fontSize: '16px' }} /> Key to Score
+                                </button>
                             </div>
                             
                             {metrics && (
@@ -626,6 +630,54 @@ export default function ProjectActionPlansPage() {
                             }}>
                                 Save & Leave
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {keyToScoreModal && (
+                <div className="modal-overlay" onClick={() => setKeyToScoreModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+                        <div className="modal-header">
+                            <h2>Key to Score</h2>
+                            <button className="btn-icon" onClick={() => setKeyToScoreModal(false)}><HiOutlineX /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '24px' }}>
+                            <table className="bordered-table" style={{ margin: 0 }}>
+                                <thead>
+                                    <tr>
+                                        <th colSpan="2" style={{ textAlign: 'center', fontSize: '16px' }}>Criteria</th>
+                                        <th style={{ fontSize: '16px' }}>Interpretation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ backgroundColor: '#22c55e', color: '#ffffff', fontWeight: 700, width: '150px' }}>Outstanding</td>
+                                        <td style={{ backgroundColor: '#22c55e', color: '#ffffff', width: '50px', textAlign: 'center', fontWeight: 700 }}>5</td>
+                                        <td style={{ fontWeight: 500 }}>Follows rigorously as well as give additional contribution</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ backgroundColor: '#86efac', color: '#1e293b', fontWeight: 700 }}>Satisfactory</td>
+                                        <td style={{ backgroundColor: '#86efac', color: '#1e293b', textAlign: 'center', fontWeight: 700 }}>4</td>
+                                        <td style={{ fontWeight: 500 }}>Follows rigorously every time</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ backgroundColor: '#fde047', color: '#1e293b', fontWeight: 700 }}>Needs Improvement</td>
+                                        <td style={{ backgroundColor: '#fde047', color: '#1e293b', textAlign: 'center', fontWeight: 700 }}>3</td>
+                                        <td style={{ fontWeight: 500 }}>Follows but not rigorous, intermittent deterioration</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ backgroundColor: '#fca5a5', color: '#1e293b', fontWeight: 700 }}>Unsatisfactory</td>
+                                        <td style={{ backgroundColor: '#fca5a5', color: '#1e293b', textAlign: 'center', fontWeight: 700 }}>2</td>
+                                        <td style={{ fontWeight: 500 }}>Needs continuous follow-up from consultants</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ backgroundColor: '#ef4444', color: '#ffffff', fontWeight: 700 }}>Disappointing</td>
+                                        <td style={{ backgroundColor: '#ef4444', color: '#ffffff', textAlign: 'center', fontWeight: 700 }}>1</td>
+                                        <td style={{ fontWeight: 500 }}>No involvement & No contribution, Reluctant to change</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
