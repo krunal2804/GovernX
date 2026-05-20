@@ -52,13 +52,8 @@ export default function ProjectActionPlansPage() {
             ]);
             setProject(projectRes.data);
             setPlans(plansRes.data || []);
-            if ((plansRes.data || []).length > 0) {
-                const firstId = plansRes.data[0].id;
-                setSelectedPlanId(firstId);
-            } else {
-                setSelectedPlanId(null);
-                setSelectedPlan(null);
-            }
+            setSelectedPlanId(null);
+            setSelectedPlan(null);
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to load project action plans.');
         } finally {
@@ -190,7 +185,15 @@ export default function ProjectActionPlansPage() {
                             <span className="card-title">Sent Plans ({plans.length})</span>
                         </div>
                         {plans.length === 0 ? (
-                            <div style={{ color: 'var(--text-muted)' }}>No action plans sent yet.</div>
+                            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '12px' }}>No action plans sent yet</div>
+                                <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>Create and send an action plan to start tracking progress.</div>
+                                {!isClient && (
+                                    <button className="btn btn-primary" onClick={openSendModal}>
+                                        <HiOutlinePaperAirplane /> Send New Action Plan
+                                    </button>
+                                )}
+                            </div>
                         ) : (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                                 {plans.map((plan) => (
