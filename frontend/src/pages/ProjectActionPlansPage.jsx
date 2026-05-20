@@ -183,48 +183,64 @@ export default function ProjectActionPlansPage() {
                 )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="card" style={{ marginBottom: 0 }}>
-                    <div className="card-header">
-                        <span className="card-title">Sent Plans ({plans.length})</span>
-                    </div>
-                    {plans.length === 0 ? (
-                        <div style={{ color: 'var(--text-muted)' }}>No action plans sent yet.</div>
-                    ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
-                            {plans.map((plan) => (
-                                <button
-                                    key={plan.id}
-                                    onClick={() => setSelectedPlanId(plan.id)}
-                                    style={{
-                                        border: selectedPlanId === plan.id ? '1px solid var(--accent)' : '1px solid var(--border)',
-                                        background: selectedPlanId === plan.id ? 'var(--accent-light)' : 'var(--bg-secondary)',
-                                        borderRadius: 'var(--radius-md)',
-                                        padding: '12px',
-                                        cursor: 'pointer',
-                                        textAlign: 'left',
-                                        transition: 'var(--transition)',
-                                    }}
-                                >
-                                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{plan.title}</div>
-                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                        {plan.sent_at ? new Date(plan.sent_at).toLocaleDateString() : '-'}
-                                    </div>
-                                </button>
-                            ))}
+            <div>
+                {!selectedPlanId ? (
+                    <div className="card" style={{ marginBottom: 0 }}>
+                        <div className="card-header">
+                            <span className="card-title">Sent Plans ({plans.length})</span>
                         </div>
-                    )}
-                </div>
-
-                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                    {selectedPlan ? (
+                        {plans.length === 0 ? (
+                            <div style={{ color: 'var(--text-muted)' }}>No action plans sent yet.</div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                                {plans.map((plan) => (
+                                    <button
+                                        key={plan.id}
+                                        onClick={() => setSelectedPlanId(plan.id)}
+                                        style={{
+                                            border: '1px solid var(--border)',
+                                            background: 'var(--bg-secondary)',
+                                            borderRadius: 'var(--radius-md)',
+                                            padding: '20px',
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'var(--transition)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '8px'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--primary)';
+                                            e.currentTarget.style.background = 'var(--bg-hover)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--border)';
+                                            e.currentTarget.style.background = 'var(--bg-secondary)';
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '16px' }}>{plan.title}</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                                            Sent: {plan.sent_at ? new Date(plan.sent_at).toLocaleDateString() : '-'}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                         <div>
                             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ fontSize: '20px', fontWeight: 700 }}>{selectedPlan.title}</div>
-                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                        Sent: {selectedPlan.sent_at ? new Date(selectedPlan.sent_at).toLocaleString() : '-'}
-                                        {selectedPlan.sent_by_name ? ` by ${selectedPlan.sent_by_name}` : ''}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <button className="btn btn-secondary btn-sm" onClick={() => setSelectedPlanId(null)}>
+                                        <HiOutlineArrowLeft /> Back to Plans
+                                    </button>
+                                    <div>
+                                        <div style={{ fontSize: '20px', fontWeight: 700 }}>{selectedPlan.title}</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                            Sent: {selectedPlan.sent_at ? new Date(selectedPlan.sent_at).toLocaleString() : '-'}
+                                            {selectedPlan.sent_by_name ? ` by ${selectedPlan.sent_by_name}` : ''}
+                                        </div>
                                     </div>
                                 </div>
                                 {!isClient && Object.keys(pendingScores).length > 0 && (
@@ -370,12 +386,8 @@ export default function ProjectActionPlansPage() {
                                 </table>
                             </div>
                         </div>
-                    ) : (
-                        <div style={{ padding: '24px', color: 'var(--text-muted)' }}>
-                            Click a sent action plan card to view Category and Particular details.
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {sendModal && (
