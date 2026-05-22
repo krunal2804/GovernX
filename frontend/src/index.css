@@ -1688,7 +1688,7 @@ select.form-control {
 }
 
 
-/* Added for Action Plan bordered tables */
+/* Added for Client Commitment Tracker bordered tables */
 .bordered-table th:not(:last-child),
 .bordered-table td:not(:last-child) {
   border-right: 1px solid var(--border);

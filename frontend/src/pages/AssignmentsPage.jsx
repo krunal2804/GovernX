@@ -84,26 +84,52 @@ export default function AssignmentsPage() {
         setShowModal(true);
     };
 
-    const openEdit = (e, a) => {
+    const openEdit = async (e, a) => {
         e.stopPropagation();
         setEditItem(a);
         setErrors({});
-        setForm({
-            organization_id: a.organization_id, name: a.name, location: a.location || '', description: a.description || '', start_date: a.start_date?.split('T')[0] || '',
-            faber_poc_id: a.faber_poc_id || '',
-            top_management_name: a.top_management_name || '', top_management_designation: a.top_management_designation || '', top_management_mobile: a.top_management_mobile || '', top_management_email: a.top_management_email || '',
-            client_poc_name: a.client_poc_name || '', client_poc_designation: a.client_poc_designation || '', client_poc_mobile: a.client_poc_mobile || '', client_poc_email: a.client_poc_email || '',
-            logistics_poc_name: a.logistics_poc_name || '', logistics_poc_designation: a.logistics_poc_designation || '', logistics_poc_mobile: a.logistics_poc_mobile || '', logistics_poc_email: a.logistics_poc_email || '',
-            logistics_arrangements: a.logistics_arrangements || initialLogistics,
-            conf_data_sharing: a.conf_data_sharing || false, conf_aae_communication: a.conf_aae_communication || false,
-            special_instructions: a.special_instructions || '',
-            schedule_type: a.schedule_type || 'month',
-            consulting_team: [],
-            period_count: 1,
-            consulting_grid: [[]],
-            projects: [] // Hide project form on edit
-        });
-        setShowModal(true);
+        try {
+            const res = await api.get(`/assignments/${a.id}`);
+            const fullAssignment = res.data;
+            const teamMembers = fullAssignment.team_members || [];
+            const cDays = fullAssignment.consulting_days || [];
+            
+            const consulting_team = teamMembers.map(tm => ({ user_id: tm.user_id, title: tm.title || '' }));
+            
+            const maxPeriodIndex = cDays.reduce((max, d) => Math.max(max, d.period_index), -1);
+            const period_count = maxPeriodIndex >= 0 ? maxPeriodIndex + 1 : 1;
+            
+            let consulting_grid = [[]];
+            if (consulting_team.length > 0) {
+                consulting_grid = Array.from({ length: period_count }, () => Array(consulting_team.length).fill(0));
+                cDays.forEach(d => {
+                    const colIndex = teamMembers.findIndex(tm => tm.id === d.team_member_id);
+                    if (colIndex >= 0 && d.period_index >= 0) {
+                        consulting_grid[d.period_index][colIndex] = d.days || 0;
+                    }
+                });
+            }
+
+            setForm({
+                organization_id: a.organization_id, name: a.name, location: a.location || '', description: a.description || '', start_date: a.start_date?.split('T')[0] || '',
+                faber_poc_id: a.faber_poc_id || '',
+                top_management_name: a.top_management_name || '', top_management_designation: a.top_management_designation || '', top_management_mobile: a.top_management_mobile || '', top_management_email: a.top_management_email || '',
+                client_poc_name: a.client_poc_name || '', client_poc_designation: a.client_poc_designation || '', client_poc_mobile: a.client_poc_mobile || '', client_poc_email: a.client_poc_email || '',
+                logistics_poc_name: a.logistics_poc_name || '', logistics_poc_designation: a.logistics_poc_designation || '', logistics_poc_mobile: a.logistics_poc_mobile || '', logistics_poc_email: a.logistics_poc_email || '',
+                logistics_arrangements: typeof a.logistics_arrangements === 'string' ? JSON.parse(a.logistics_arrangements) : (a.logistics_arrangements || initialLogistics),
+                conf_data_sharing: a.conf_data_sharing || false, conf_aae_communication: a.conf_aae_communication || false,
+                special_instructions: a.special_instructions || '',
+                schedule_type: a.schedule_type || 'month',
+                consulting_team,
+                period_count,
+                consulting_grid,
+                projects: [] // Hide project form on edit
+            });
+            setShowModal(true);
+        } catch (err) {
+            console.error('Failed to load assignment details for edit', err);
+            alert('Failed to load assignment details.');
+        }
     };
 
     const handleLogisticsArrangementChange = (key, field, value) => {
@@ -183,19 +209,11 @@ export default function AssignmentsPage() {
         if (!form.name || !form.name.trim()) newErrors.name = 'This field is required';
         if (!form.faber_poc_id) newErrors.faber_poc_id = 'This field is required';
 
-        // Top Management Details
-        if (!form.top_management_name || !form.top_management_name.trim()) newErrors.top_management_name = 'This field is required';
-        if (!form.top_management_designation || !form.top_management_designation.trim()) newErrors.top_management_designation = 'This field is required';
-        if (!form.top_management_mobile || !form.top_management_mobile.trim()) newErrors.top_management_mobile = 'This field is required';
-        if (!form.top_management_email || !form.top_management_email.trim()) newErrors.top_management_email = 'This field is required';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.top_management_email)) newErrors.top_management_email = 'Invalid email address';
+        // Top Management Details (Optional but validate email if provided)
+        if (form.top_management_email && form.top_management_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.top_management_email)) newErrors.top_management_email = 'Invalid email address';
 
-        // Point of Contact - Client
-        if (!form.client_poc_name || !form.client_poc_name.trim()) newErrors.client_poc_name = 'This field is required';
-        if (!form.client_poc_designation || !form.client_poc_designation.trim()) newErrors.client_poc_designation = 'This field is required';
-        if (!form.client_poc_mobile || !form.client_poc_mobile.trim()) newErrors.client_poc_mobile = 'This field is required';
-        if (!form.client_poc_email || !form.client_poc_email.trim()) newErrors.client_poc_email = 'This field is required';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.client_poc_email)) newErrors.client_poc_email = 'Invalid email address';
+        // Point of Contact - Client (Optional but validate email if provided)
+        if (form.client_poc_email && form.client_poc_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.client_poc_email)) newErrors.client_poc_email = 'Invalid email address';
 
         if (!editItem && form.projects && form.projects.length > 0) {
             form.projects.forEach((proj, idx) => {
@@ -475,7 +493,7 @@ export default function AssignmentsPage() {
                                 <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>Assignment Overview</h3>
                                 <div className="form-group">
                                     <label>1. Client Name *</label>
-                                    <select className="form-control" value={form.organization_id} onChange={(e) => setForm({ ...form, organization_id: e.target.value })}>
+                                    <select className="form-control" disabled={!!editItem} value={form.organization_id} onChange={(e) => setForm({ ...form, organization_id: e.target.value })}>
                                         <option value="">Select Client</option>
                                         {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                                     </select>
@@ -483,18 +501,18 @@ export default function AssignmentsPage() {
                                 </div>
                                 <div className="form-group">
                                     <label>Assignment Name *</label>
-                                    <input className="form-control" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. TATA-Gujarat" />
+                                    <input className="form-control" disabled={!!editItem} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. TATA-Gujarat" />
                                     {errors.name && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.name}</span>}
                                 </div>
 
                                 <div className="form-group" style={{ marginBottom: '20px' }}>
                                     <label>2. Site Address (For Consulting Intervention)</label>
-                                    <input className="form-control" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="City or Plant Name" />
+                                    <input className="form-control" disabled={!!editItem} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="City or Plant Name" />
                                 </div>
 
                                 <div className="form-group" style={{ marginBottom: '32px' }}>
                                     <label>3. Point of Contact - Faber Infinite *</label>
-                                    <select className="form-control" value={form.faber_poc_id} onChange={(e) => setForm({ ...form, faber_poc_id: e.target.value })}>
+                                    <select className="form-control" disabled={!!editItem} value={form.faber_poc_id} onChange={(e) => setForm({ ...form, faber_poc_id: e.target.value })}>
                                         <option value="">Select Faber Contact</option>
                                         {faberUsers.map(u => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
                                     </select>
@@ -508,24 +526,24 @@ export default function AssignmentsPage() {
                                         <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>Top Management Details</h3>
                                         <div className="form-row">
                                             <div className="form-group">
-                                                <label>Name *</label>
+                                                <label>Name</label>
                                                 <input className="form-control" value={form.top_management_name} onChange={(e) => setForm({ ...form, top_management_name: e.target.value })} placeholder="Name" />
                                                 {errors.top_management_name && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.top_management_name}</span>}
                                             </div>
                                             <div className="form-group">
-                                                <label>Designation *</label>
+                                                <label>Designation</label>
                                                 <input className="form-control" value={form.top_management_designation} onChange={(e) => setForm({ ...form, top_management_designation: e.target.value })} placeholder="Designation" />
                                                 {errors.top_management_designation && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.top_management_designation}</span>}
                                             </div>
                                         </div>
                                         <div className="form-row">
                                             <div className="form-group">
-                                                <label>Mobile/ Board Line No. *</label>
+                                                <label>Mobile/ Board Line No.</label>
                                                 <input className="form-control" value={form.top_management_mobile} onChange={(e) => setForm({ ...form, top_management_mobile: e.target.value })} placeholder="Phone Number" />
                                                 {errors.top_management_mobile && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.top_management_mobile}</span>}
                                             </div>
                                             <div className="form-group">
-                                                <label>E-mail ID *</label>
+                                                <label>E-mail ID</label>
                                                 <input type="email" className="form-control" value={form.top_management_email} onChange={(e) => setForm({ ...form, top_management_email: e.target.value })} placeholder="Email Address" />
                                                 {errors.top_management_email && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.top_management_email}</span>}
                                             </div>
@@ -539,24 +557,24 @@ export default function AssignmentsPage() {
                                         <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>Point of Contact - Client</h3>
                                         <div className="form-row">
                                             <div className="form-group">
-                                                <label>Name *</label>
+                                                <label>Name</label>
                                                 <input className="form-control" value={form.client_poc_name} onChange={(e) => setForm({ ...form, client_poc_name: e.target.value })} placeholder="Name" />
                                                 {errors.client_poc_name && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.client_poc_name}</span>}
                                             </div>
                                             <div className="form-group">
-                                                <label>Designation *</label>
+                                                <label>Designation</label>
                                                 <input className="form-control" value={form.client_poc_designation} onChange={(e) => setForm({ ...form, client_poc_designation: e.target.value })} placeholder="Designation" />
                                                 {errors.client_poc_designation && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.client_poc_designation}</span>}
                                             </div>
                                         </div>
                                         <div className="form-row">
                                             <div className="form-group">
-                                                <label>Mobile/ Board Line No. *</label>
+                                                <label>Mobile/ Board Line No.</label>
                                                 <input className="form-control" value={form.client_poc_mobile} onChange={(e) => setForm({ ...form, client_poc_mobile: e.target.value })} placeholder="Phone Number" />
                                                 {errors.client_poc_mobile && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.client_poc_mobile}</span>}
                                             </div>
                                             <div className="form-group">
-                                                <label>E-mail ID *</label>
+                                                <label>E-mail ID</label>
                                                 <input type="email" className="form-control" value={form.client_poc_email} onChange={(e) => setForm({ ...form, client_poc_email: e.target.value })} placeholder="Email Address" />
                                                 {errors.client_poc_email && <span className="error-text" style={{ color: 'var(--danger)', fontSize: '13px', marginTop: '6px', display: 'block' }}>{errors.client_poc_email}</span>}
                                             </div>

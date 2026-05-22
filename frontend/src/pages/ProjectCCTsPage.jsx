@@ -3,11 +3,9 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import Breadcrumb from '../components/Breadcrumb';
+import CommitmentGaugeChart from '../components/CommitmentGaugeChart';
 import { HiOutlineArrowLeft, HiOutlinePaperAirplane, HiOutlineX, HiOutlineInformationCircle } from 'react-icons/hi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import GaugeChart from '../components/GaugeChart';
-
-
 
 const HorizontalBarCharts = ({ categories }) => {
     return (
@@ -65,7 +63,7 @@ const getScoreTextColor = (score) => {
     return undefined;
 };
 
-export default function ProjectActionPlansPage() {
+export default function ProjectCCTsPage() {
     const { id } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
@@ -79,7 +77,7 @@ export default function ProjectActionPlansPage() {
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sendModal, setSendModal] = useState(false);
-    const [sendForm, setSendForm] = useState({ action_plan_template_id: '', title: '', notes: '' });
+    const [sendForm, setSendForm] = useState({ cct_template_id: '', title: '', notes: '' });
     const [sending, setSending] = useState(false);
     const [pendingScores, setPendingScores] = useState({});
     const [savingScores, setSavingScores] = useState(false);
@@ -92,14 +90,14 @@ export default function ProjectActionPlansPage() {
         try {
             const [projectRes, plansRes] = await Promise.all([
                 api.get(`/projects/${id}`),
-                api.get(`/projects/${id}/action-plans`),
+                api.get(`/projects/${id}/ccts`),
             ]);
             setProject(projectRes.data);
             setPlans(plansRes.data || []);
             setSelectedPlanId(null);
             setSelectedPlan(null);
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to load project action plans.');
+            alert(err.response?.data?.error || 'Failed to load project ccts.');
         } finally {
             setLoading(false);
         }
@@ -108,19 +106,19 @@ export default function ProjectActionPlansPage() {
     const loadPlanDetail = async (planId) => {
         if (!planId) return setSelectedPlan(null);
         try {
-            const res = await api.get(`/projects/${id}/action-plans/${planId}`);
+            const res = await api.get(`/projects/${id}/ccts/${planId}`);
             setSelectedPlan(res.data);
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to load action plan detail.');
+            alert(err.response?.data?.error || 'Failed to load cct detail.');
         }
     };
 
     const loadTemplates = async () => {
         try {
-            const res = await api.get('/action-plans');
+            const res = await api.get('/ccts');
             setTemplates(res.data || []);
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to load action plan templates.');
+            alert(err.response?.data?.error || 'Failed to load cct templates.');
         }
     };
 
@@ -211,26 +209,26 @@ export default function ProjectActionPlansPage() {
 
     const openSendModal = async () => {
         await loadTemplates();
-        setSendForm({ action_plan_template_id: '', title: '', notes: '' });
+        setSendForm({ cct_template_id: '', title: '', notes: '' });
         setSendModal(true);
     };
 
     const submitSend = async (e) => {
         e.preventDefault();
-        if (!sendForm.action_plan_template_id || !sendForm.title.trim()) {
+        if (!sendForm.cct_template_id || !sendForm.title.trim()) {
             return alert('Template and title are required.');
         }
         setSending(true);
         try {
-            await api.post(`/projects/${id}/action-plans/send`, {
-                action_plan_template_id: Number(sendForm.action_plan_template_id),
+            await api.post(`/projects/${id}/ccts/send`, {
+                cct_template_id: Number(sendForm.cct_template_id),
                 title: sendForm.title.trim(),
                 notes: sendForm.notes.trim() || null,
             });
             setSendModal(false);
             await fetchBaseData();
         } catch (err) {
-            alert(err.response?.data?.error || 'Failed to send action plan.');
+            alert(err.response?.data?.error || 'Failed to send cct.');
         } finally {
             setSending(false);
         }
@@ -265,7 +263,7 @@ export default function ProjectActionPlansPage() {
 
     const savePendingScores = async () => {
         const updates = Object.keys(pendingScores).map(pId => {
-            return api.put(`/projects/${id}/action-plans/${selectedPlanId}/particulars/${pId}/score`, {
+            return api.put(`/projects/${id}/ccts/${selectedPlanId}/particulars/${pId}/score`, {
                 score_out_of_5: pendingScores[pId]
             });
         });
@@ -277,8 +275,8 @@ export default function ProjectActionPlansPage() {
             await Promise.all(updates);
             await loadPlanDetail(selectedPlanId);
             
-            // Re-fetch action plans to update the overall percentages for the list and summary charts
-            const plansRes = await api.get(`/projects/${id}/action-plans`);
+            // Re-fetch ccts to update the overall percentages for the list and summary charts
+            const plansRes = await api.get(`/projects/${id}/ccts`);
             setPlans(plansRes.data || []);
             
             setPendingScores({});
@@ -298,7 +296,7 @@ export default function ProjectActionPlansPage() {
                     { label: 'Home', path: '/' },
                     { label: 'Projects', path: '/projects' },
                     { label: project?.name || 'Project', path: `/projects/${id}`, state: { from: '/projects' } },
-                    { label: 'Action Plans', path: `/projects/${id}/action-plans` },
+                    { label: 'Client Commitment Trackers', path: `/projects/${id}/ccts` },
                 ]}
             />
 
@@ -313,11 +311,11 @@ export default function ProjectActionPlansPage() {
                             <HiOutlineArrowLeft /> Back to Project
                         </button>
                     )}
-                    <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>Project Action Plans</h1>
+                    <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>Project Client Commitment Trackers</h1>
                 </div>
                 {!isClient && (
                     <button className="btn btn-primary btn-sm" onClick={openSendModal}>
-                        <HiOutlinePaperAirplane /> Send New Action Plan
+                        <HiOutlinePaperAirplane /> Send New Client Commitment Tracker
                     </button>
                 )}
             </div>
@@ -331,6 +329,9 @@ export default function ProjectActionPlansPage() {
                                     <span className="card-title">Overall Commitment Summary</span>
                                 </div>
                                 <div style={{ padding: '32px 24px', display: 'flex', flexWrap: 'wrap', gap: '48px', alignItems: 'center' }}>
+                                    <div style={{ flex: '0 0 320px' }}>
+                                        <CommitmentGaugeChart percentage={summaryData.averagePercentage} />
+                                    </div>
                                     <div style={{ flex: '1 1 450px', minWidth: '400px', height: '250px' }}>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={summaryData.chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
@@ -372,9 +373,6 @@ export default function ProjectActionPlansPage() {
                                             </LineChart>
                                         </ResponsiveContainer>
                                     </div>
-                                    <div style={{ flex: '0 0 320px' }}>
-                                        <GaugeChart percentage={summaryData.averagePercentage} />
-                                    </div>
                                 </div>
                             </div>
                         )}
@@ -384,11 +382,11 @@ export default function ProjectActionPlansPage() {
                         </div>
                         {plans.length === 0 ? (
                             <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '12px' }}>No action plans sent yet</div>
-                                <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>Create and send an action plan to start tracking progress.</div>
+                                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '12px' }}>No ccts sent yet</div>
+                                <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>Create and send an cct to start tracking progress.</div>
                                 {!isClient && (
                                     <button className="btn btn-primary" onClick={openSendModal}>
-                                        <HiOutlinePaperAirplane /> Send New Action Plan
+                                        <HiOutlinePaperAirplane /> Send New Client Commitment Tracker
                                     </button>
                                 )}
                             </div>
@@ -420,7 +418,7 @@ export default function ProjectActionPlansPage() {
                                         }}
                                     >
                                         <div style={{ width: '120px', margin: '0 auto 12px', opacity: 0.9 }}>
-                                            <GaugeChart percentage={Number(plan.overall_percentage || 0)} small={true} />
+                                            <CommitmentGaugeChart percentage={Number(plan.overall_percentage || 0)} small={true} />
                                         </div>
                                         <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '16px', textAlign: 'center' }}>
                                             {plan.title} : <span style={{ color: 'var(--primary)' }}>{Number(plan.overall_percentage || 0).toFixed(0)}%</span>
@@ -455,7 +453,7 @@ export default function ProjectActionPlansPage() {
                             {metrics && (
                                 <div style={{ padding: '32px 24px', borderBottom: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: '48px', alignItems: 'center' }}>
                                     <div style={{ flex: '0 0 320px' }}>
-                                        <GaugeChart percentage={metrics.globalPercentage} />
+                                        <CommitmentGaugeChart percentage={metrics.globalPercentage} />
                                     </div>
                                     <div style={{ flex: '1 1 450px', minWidth: '400px' }}>
                                         <HorizontalBarCharts categories={metrics.categories} />
@@ -590,7 +588,7 @@ export default function ProjectActionPlansPage() {
                 ) : (
                     <div className="card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <div className="spinner" style={{ margin: '0 auto 16px', width: '32px', height: '32px' }} />
-                        Loading action plan details...
+                        Loading cct details...
                     </div>
                 )}
             </div>
@@ -599,7 +597,7 @@ export default function ProjectActionPlansPage() {
                 <div className="modal-overlay" onClick={() => !sending && setSendModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Send New Action Plan</h2>
+                            <h2>Send New Client Commitment Tracker</h2>
                             <button className="btn-icon" onClick={() => !sending && setSendModal(false)}><HiOutlineX /></button>
                         </div>
                         <form onSubmit={submitSend}>
@@ -609,10 +607,10 @@ export default function ProjectActionPlansPage() {
                                     <select
                                         required
                                         className="form-control"
-                                        value={sendForm.action_plan_template_id}
-                                        onChange={(e) => setSendForm((p) => ({ ...p, action_plan_template_id: e.target.value }))}
+                                        value={sendForm.cct_template_id}
+                                        onChange={(e) => setSendForm((p) => ({ ...p, cct_template_id: e.target.value }))}
                                     >
-                                        <option value="">Select Action Plan Template</option>
+                                        <option value="">Select Client Commitment Tracker Template</option>
                                         {templates.map((t) => (
                                             <option key={t.id} value={t.id}>{t.name}</option>
                                         ))}
@@ -640,7 +638,7 @@ export default function ProjectActionPlansPage() {
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" disabled={sending} onClick={() => setSendModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" disabled={sending}>{sending ? 'Sending...' : 'Send Action Plan'}</button>
+                                <button type="submit" className="btn btn-primary" disabled={sending}>{sending ? 'Sending...' : 'Send Client Commitment Tracker'}</button>
                             </div>
                         </form>
                     </div>

@@ -5,6 +5,8 @@ const { authenticate } = require('../middleware/auth');
 const { deriveProjectWorkflowStatus } = require('../utils/workflowStatus');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const fs = require('fs');
+const path = require('path');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -163,22 +165,11 @@ router.post('/', authenticate, async (req, res) => {
 
 // GET /api/users/sample-excel — Download a sample Excel template
 router.get('/sample-excel', authenticate, (req, res) => {
-    const wb = XLSX.utils.book_new();
-    const data = [
-        ['First Name', 'Last Name', 'Email', 'Password', 'Role', 'Phone'],
-        ['John', 'Doe', 'john.doe@example.com', 'Password123', 'Consultant', '9876543210'],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    // Set column widths
-    ws['!cols'] = [
-        { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 18 }, { wch: 20 }, { wch: 15 }
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, 'Users');
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    res.setHeader('Content-Disposition', 'attachment; filename="sample_users.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Length', buffer.length);
-    res.end(buffer);
+    const samplePath = path.resolve(__dirname, '../assets/samples/sample_users.xlsx');
+    if (!fs.existsSync(samplePath)) {
+        return res.status(404).json({ error: 'Sample file not found on server.' });
+    }
+    return res.download(samplePath, 'sample_users.xlsx');
 });
 
 // POST /api/users/bulk/validate — Validate an Excel file and return data + errors for frontend review

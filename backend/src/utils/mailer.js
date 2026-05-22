@@ -71,15 +71,33 @@ async function sendPasswordResetCode(email, code) {
     }
 
     const transporter = getTransporter();
-    const from = process.env.MAIL_FROM || process.env.SMTP_USER;
-    const subject = 'GovernX Password Reset Code';
+    const fromEmail = process.env.MAIL_FROM || process.env.SMTP_USER;
+    const from = `"GovernX Support" <${fromEmail}>`;
+    const subject = 'Your GovernX Password Reset Code';
+    
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
+        <h2 style="color: #333; text-align: center;">Password Reset Request</h2>
+        <p style="color: #555; font-size: 16px;">Hello,</p>
+        <p style="color: #555; font-size: 16px;">We received a request to reset your password for your GovernX account. Please use the verification code below to proceed:</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #0056b3; background-color: #f4f8ff; padding: 10px 20px; border-radius: 8px;">${code}</span>
+        </div>
+        <p style="color: #555; font-size: 16px;">This code will expire in <strong>5 minutes</strong>.</p>
+        <p style="color: #555; font-size: 16px;">If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
+        <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
+        <p style="color: #999; font-size: 12px; text-align: center;">This is an automated message, please do not reply to this email.</p>
+    </div>
+    `;
+    
     const text = `Your GovernX password reset code is ${code}. This code expires in 5 minutes. If you did not request this reset, you can ignore this email.`;
 
     await transporter.sendMail({
         from,
         to: email,
         subject,
-        text,
+        text, // Fallback for email clients that don't support HTML
+        html,
     });
 }
 

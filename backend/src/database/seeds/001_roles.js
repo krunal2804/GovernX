@@ -23,13 +23,6 @@ exports.seed = async function (knex) {
             description: 'Manages teams and client relationships',
         },
         {
-            id: 3,
-            name: 'CEM',
-            side: 'consulting',
-            hierarchy_level: 3,
-            description: 'Client Engagement Manager — primary client liaison',
-        },
-        {
             id: 4,
             name: 'Senior Consultant',
             side: 'consulting',
@@ -65,6 +58,13 @@ exports.seed = async function (knex) {
             side: 'client',
             hierarchy_level: 3,
             description: 'Client-side leader driving project progress',
+        },
+        {
+            id: 9,
+            name: 'Client',
+            side: 'client',
+            hierarchy_level: 9,
+            description: 'Client accessing the portal',
         },
     ]);
 };

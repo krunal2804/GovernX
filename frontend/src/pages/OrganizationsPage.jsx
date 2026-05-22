@@ -9,7 +9,7 @@ export default function OrganizationsPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editOrg, setEditOrg] = useState(null);
-    const [form, setForm] = useState({ name: '', industry: '', city: '', state: '', country: '', phone: '', email: '' });
+    const [form, setForm] = useState({ name: '', industry: '', city: '', state: '', country: '', phone: '', email: '', password: '' });
     const navigate = useNavigate();
 
     const fetchOrgs = () => {
@@ -18,8 +18,8 @@ export default function OrganizationsPage() {
 
     useEffect(fetchOrgs, []);
 
-    const openAdd = () => { setEditOrg(null); setForm({ name: '', industry: '', city: '', state: '', country: '', phone: '', email: '' }); setShowModal(true); };
-    const openEdit = (e, org) => { e.stopPropagation(); setEditOrg(org); setForm({ name: org.name, industry: org.industry || '', city: org.city || '', state: org.state || '', country: org.country || '', phone: org.phone || '', email: org.email || '' }); setShowModal(true); };
+    const openAdd = () => { setEditOrg(null); setForm({ name: '', industry: '', city: '', state: '', country: '', phone: '', email: '', password: '' }); setShowModal(true); };
+    const openEdit = (e, org) => { e.stopPropagation(); setEditOrg(org); setForm({ name: org.name, industry: org.industry || '', city: org.city || '', state: org.state || '', country: org.country || '', phone: org.phone || '', email: org.email || '', password: '' }); setShowModal(true); };
 
     const handleDelete = async (e, org) => {
         e.stopPropagation();
@@ -123,6 +123,12 @@ export default function OrganizationsPage() {
                                         <input className="form-control" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required placeholder="contact@company.com" />
                                     </div>
                                 </div>
+                                {!editOrg && (
+                                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                                        <label>Password *</label>
+                                        <input className="form-control" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required placeholder="Enter password for client login" />
+                                    </div>
+                                )}
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label>City</label>

@@ -87,9 +87,10 @@ router.get('/:id', authenticate, async (req, res) => {
 
 router.post('/', authenticate, authorize('organizations', 'can_create'), async (req, res) => {
     try {
-        const { name, industry, website, address, city, state, country, pincode, phone, email } = req.body;
+        const { name, industry, website, address, city, state, country, pincode, phone, email, password } = req.body;
         if (!name) return res.status(400).json({ error: 'Name is required.' });
         if (!email) return res.status(400).json({ error: 'Email is required.' });
+        if (!password) return res.status(400).json({ error: 'Password is required for client login.' });
 
         const result = await db.transaction(async (trx) => {
             const [org] = await trx('organizations')
@@ -102,7 +103,7 @@ router.post('/', authenticate, authorize('organizations', 'can_create'), async (
                 let clientRole = await trx('roles').where({ name: 'Client' }).first();
                 if (clientRole) {
                     const bcrypt = require('bcryptjs');
-                    const password_hash = await bcrypt.hash('123456', 10);
+                    const password_hash = await bcrypt.hash(password, 10);
                     await trx('users').insert({
                         first_name: name,
                         last_name: 'POC',

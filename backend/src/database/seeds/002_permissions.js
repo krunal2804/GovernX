@@ -22,12 +22,12 @@ exports.seed = async function (knex) {
     // Role IDs from roles seed
     const DIRECTOR = 1;
     const MANAGER = 2;
-    const CEM = 3;
     const SENIOR_CONSULTANT = 4;
     const CONSULTANT = 5;
     const SPONSOR = 6;
     const PROJECT_COORDINATOR = 7;
     const PROJECT_LEADER = 8;
+    const CLIENT = 9;
 
     // Director — full access to everything
     modules.forEach((mod) => {
@@ -51,31 +51,6 @@ exports.seed = async function (knex) {
             can_edit: true,
             can_delete: mod !== 'settings',
         });
-    });
-
-    // CEM — can manage projects, tasks, reports; view orgs & assignments
-    modules.forEach((mod) => {
-        const manageModules = ['projects', 'tasks', 'reports', 'dashboard'];
-        const viewOnly = ['organizations', 'assignments', 'users', 'services', 'settings'];
-        if (manageModules.includes(mod)) {
-            permissions.push({
-                role_id: CEM,
-                module: mod,
-                can_view: true,
-                can_create: true,
-                can_edit: true,
-                can_delete: false,
-            });
-        } else if (viewOnly.includes(mod)) {
-            permissions.push({
-                role_id: CEM,
-                module: mod,
-                can_view: true,
-                can_create: false,
-                can_edit: false,
-                can_delete: false,
-            });
-        }
     });
 
     // Senior Consultant — manage tasks, view projects & reports
@@ -156,6 +131,18 @@ exports.seed = async function (knex) {
             can_view: true,
             can_create: false,
             can_edit: mod === 'tasks',
+            can_delete: false,
+        });
+    });
+
+    // Client - view dashboard & projects
+    ['dashboard', 'projects'].forEach((mod) => {
+        permissions.push({
+            role_id: CLIENT,
+            module: mod,
+            can_view: true,
+            can_create: false,
+            can_edit: false,
             can_delete: false,
         });
     });

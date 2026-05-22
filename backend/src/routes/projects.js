@@ -5,7 +5,7 @@ const { buildTaskLockState, resequenceProjectTasks } = require('../utils/project
 const { deriveProjectWorkflowStatusFromTasks, deriveProjectWorkflowStatus } = require('../utils/workflowStatus');
 
 const router = express.Router();
-const MAX_ACTION_PLAN_TITLE_LENGTH = 150;
+const MAX_cct_TITLE_LENGTH = 150;
 
 async function fetchProjectForActionPlanAccess(projectId, user) {
     const project = await db('projects')
@@ -108,6 +108,7 @@ router.get('/:id', authenticate, async (req, res) => {
             .leftJoin('service_steps', 'service_tasks.service_step_id', 'service_steps.id')
             .select(
                 'project_tasks.*',
+                db.raw('COALESCE(service_steps.name, project_tasks.step_name) as step_name'),
                 'users.first_name as assignee_first_name',
                 'users.last_name as assignee_last_name',
                 'service_tasks.sequence_order as service_task_sequence_order',
@@ -259,89 +260,89 @@ router.delete('/:id', authenticate, authorize('projects', 'can_delete'), async (
 });
 
 // ==========================================
-// PROJECT ACTION PLANS
+// PROJECT CCTS
 // ==========================================
 
-// GET /api/projects/:id/action-plans
-router.get('/:id/action-plans', authenticate, async (req, res) => {
+// GET /api/projects/:id/ccts
+router.get('/:id/ccts', authenticate, async (req, res) => {
     try {
         const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
         if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
-        const plans = await db('project_action_plans')
-            .leftJoin('users', 'project_action_plans.sent_by', 'users.id')
-            .where('project_action_plans.project_id', req.params.id)
+        const plans = await db('project_ccts')
+            .leftJoin('users', 'project_ccts.sent_by', 'users.id')
+            .where('project_ccts.project_id', req.params.id)
             .select(
-                'project_action_plans.id',
-                'project_action_plans.title',
-                'project_action_plans.status',
-                'project_action_plans.sent_at',
-                'project_action_plans.notes',
-                'project_action_plans.action_plan_template_id',
+                'project_ccts.id',
+                'project_ccts.title',
+                'project_ccts.status',
+                'project_ccts.sent_at',
+                'project_ccts.notes',
+                'project_ccts.cct_id',
                 db.raw("CONCAT(users.first_name, ' ', users.last_name) as sent_by_name"),
                 db.raw(`
                     COALESCE(
                         (SELECT SUM(p.score_out_of_5) 
-                         FROM project_action_plan_particulars p
-                         JOIN project_action_plan_categories c ON p.project_action_plan_category_id = c.id
-                         WHERE c.project_action_plan_id = project_action_plans.id) * 100.0 / 
+                         FROM project_cct_particulars p
+                         JOIN project_cct_categories c ON p.project_cct_category_id = c.id
+                         WHERE c.project_cct_id = project_ccts.id) * 100.0 / 
                         NULLIF((SELECT COUNT(p.id) * 5 
-                                FROM project_action_plan_particulars p
-                                JOIN project_action_plan_categories c ON p.project_action_plan_category_id = c.id
-                                WHERE c.project_action_plan_id = project_action_plans.id), 0),
+                                FROM project_cct_particulars p
+                                JOIN project_cct_categories c ON p.project_cct_category_id = c.id
+                                WHERE c.project_cct_id = project_ccts.id), 0),
                         0
                     ) as overall_percentage
                 `)
             )
-            .orderBy('project_action_plans.sent_at', 'desc')
-            .orderBy('project_action_plans.id', 'desc');
+            .orderBy('project_ccts.sent_at', 'desc')
+            .orderBy('project_ccts.id', 'desc');
 
         res.json(plans);
     } catch (err) {
-        console.error('Get project action plans error:', err);
-        res.status(500).json({ error: 'Failed to fetch project action plans.' });
+        console.error('Get project CCTs error:', err);
+        res.status(500).json({ error: 'Failed to fetch project CCTs.' });
     }
 });
 
-// POST /api/projects/:id/action-plans/send
-router.post('/:id/action-plans/send', authenticate, async (req, res) => {
+// POST /api/projects/:id/ccts/send
+router.post('/:id/ccts/send', authenticate, async (req, res) => {
     try {
         if (req.user.role_name === 'Client') {
-            return res.status(403).json({ error: 'Client users cannot send action plans.' });
+            return res.status(403).json({ error: 'Client users cannot send CCTs.' });
         }
 
         const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
         if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
-        const actionPlanTemplateId = Number.parseInt(req.body.action_plan_template_id, 10);
+        const actionPlanTemplateId = Number.parseInt(req.body.cct_template_id, 10);
         const title = String(req.body.title || '').trim();
         const notes = req.body.notes ? String(req.body.notes).trim() : null;
 
         if (!Number.isInteger(actionPlanTemplateId) || actionPlanTemplateId < 1) {
-            return res.status(400).json({ error: 'action_plan_template_id is required.' });
+            return res.status(400).json({ error: 'cct_template_id is required.' });
         }
         if (!title) return res.status(400).json({ error: 'title is required.' });
-        if (title.length > MAX_ACTION_PLAN_TITLE_LENGTH) {
-            return res.status(400).json({ error: `title must be <= ${MAX_ACTION_PLAN_TITLE_LENGTH} characters.` });
+        if (title.length > MAX_cct_TITLE_LENGTH) {
+            return res.status(400).json({ error: `title must be <= ${MAX_cct_TITLE_LENGTH} characters.` });
         }
 
-        const template = await db('action_plans').where({ id: actionPlanTemplateId }).first();
-        if (!template) return res.status(404).json({ error: 'Action plan template not found.' });
+        const template = await db('ccts').where({ id: actionPlanTemplateId }).first();
+        if (!template) return res.status(404).json({ error: 'CCT template not found.' });
 
-        const templateCategories = await db('action_plan_categories')
-            .where({ action_plan_id: template.id })
+        const templateCategories = await db('cct_categories')
+            .where({ cct_id: template.id })
             .orderBy('sequence_order')
             .orderBy('id');
 
         if (templateCategories.length === 0) {
-            return res.status(400).json({ error: 'Selected action plan template has no categories.' });
+            return res.status(400).json({ error: 'Selected CCT template has no categories.' });
         }
 
         await db.transaction(async (trx) => {
-            const [projectActionPlan] = await trx('project_action_plans')
+            const [projectActionPlan] = await trx('project_ccts')
                 .insert({
                     project_id: req.params.id,
-                    action_plan_template_id: actionPlanTemplateId,
+                    cct_id: actionPlanTemplateId,
                     title,
                     status: 'sent',
                     notes,
@@ -351,22 +352,22 @@ router.post('/:id/action-plans/send', authenticate, async (req, res) => {
                 .returning('*');
 
             for (const category of templateCategories) {
-                const [newCategory] = await trx('project_action_plan_categories')
+                const [newCategory] = await trx('project_cct_categories')
                     .insert({
-                        project_action_plan_id: projectActionPlan.id,
+                        project_cct_id: projectActionPlan.id,
                         name: category.name,
                         sequence_order: category.sequence_order,
                     })
                     .returning('*');
 
-                const particulars = await trx('action_plan_particulars')
-                    .where({ action_plan_category_id: category.id })
+                const particulars = await trx('cct_particulars')
+                    .where({ cct_category_id: category.id })
                     .orderBy('sequence_order')
                     .orderBy('id');
 
                 for (const particular of particulars) {
-                    await trx('project_action_plan_particulars').insert({
-                        project_action_plan_category_id: newCategory.id,
+                    await trx('project_cct_particulars').insert({
+                        project_cct_category_id: newCategory.id,
                         name: particular.name,
                         sequence_order: particular.sequence_order,
                     });
@@ -374,62 +375,62 @@ router.post('/:id/action-plans/send', authenticate, async (req, res) => {
             }
         });
 
-        res.status(201).json({ message: 'Action plan sent successfully.' });
+        res.status(201).json({ message: 'CCT sent successfully.' });
     } catch (err) {
-        console.error('Send project action plan error:', err);
-        res.status(500).json({ error: 'Failed to send action plan.' });
+        console.error('Send project CCT error:', err);
+        res.status(500).json({ error: 'Failed to send CCT.' });
     }
 });
 
-// GET /api/projects/:id/action-plans/:planId
-router.get('/:id/action-plans/:planId', authenticate, async (req, res) => {
+// GET /api/projects/:id/ccts/:planId
+router.get('/:id/ccts/:planId', authenticate, async (req, res) => {
     try {
         const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
         if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
-        const plan = await db('project_action_plans')
-            .leftJoin('users', 'project_action_plans.sent_by', 'users.id')
+        const plan = await db('project_ccts')
+            .leftJoin('users', 'project_ccts.sent_by', 'users.id')
             .where({
-                'project_action_plans.id': req.params.planId,
-                'project_action_plans.project_id': req.params.id,
+                'project_ccts.id': req.params.planId,
+                'project_ccts.project_id': req.params.id,
             })
             .select(
-                'project_action_plans.*',
+                'project_ccts.*',
                 db.raw("CONCAT(users.first_name, ' ', users.last_name) as sent_by_name")
             )
             .first();
 
-        if (!plan) return res.status(404).json({ error: 'Project action plan not found.' });
+        if (!plan) return res.status(404).json({ error: 'Project CCT not found.' });
 
-        const categories = await db('project_action_plan_categories')
-            .where({ project_action_plan_id: plan.id })
+        const categories = await db('project_cct_categories')
+            .where({ project_cct_id: plan.id })
             .orderBy('sequence_order')
             .orderBy('id');
 
         for (const category of categories) {
-            category.particulars = await db('project_action_plan_particulars')
-                .leftJoin('users', 'project_action_plan_particulars.score_updated_by', 'users.id')
-                .where('project_action_plan_particulars.project_action_plan_category_id', category.id)
+            category.particulars = await db('project_cct_particulars')
+                .leftJoin('users', 'project_cct_particulars.score_updated_by', 'users.id')
+                .where('project_cct_particulars.project_cct_category_id', category.id)
                 .select(
-                    'project_action_plan_particulars.*',
+                    'project_cct_particulars.*',
                     db.raw("CONCAT(users.first_name, ' ', users.last_name) as score_updated_by_name")
                 )
-                .orderBy('project_action_plan_particulars.sequence_order')
-                .orderBy('project_action_plan_particulars.id');
+                .orderBy('project_cct_particulars.sequence_order')
+                .orderBy('project_cct_particulars.id');
         }
 
         res.json({ ...plan, categories });
     } catch (err) {
-        console.error('Get project action plan detail error:', err);
-        res.status(500).json({ error: 'Failed to fetch project action plan detail.' });
+        console.error('Get project CCT detail error:', err);
+        res.status(500).json({ error: 'Failed to fetch project CCT detail.' });
     }
 });
 
-// PUT /api/projects/:id/action-plans/:planId/particulars/:particularId/score
-router.put('/:id/action-plans/:planId/particulars/:particularId/score', authenticate, async (req, res) => {
+// PUT /api/projects/:id/ccts/:planId/particulars/:particularId/score
+router.put('/:id/ccts/:planId/particulars/:particularId/score', authenticate, async (req, res) => {
     try {
         if (req.user.role_name === 'Client') {
-            return res.status(403).json({ error: 'Client users cannot score action plan particulars.' });
+            return res.status(403).json({ error: 'Client users cannot score CCT particulars.' });
         }
 
         const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
@@ -441,23 +442,23 @@ router.put('/:id/action-plans/:planId/particulars/:particularId/score', authenti
             return res.status(400).json({ error: 'score_out_of_5 must be an integer between 0 and 5.' });
         }
 
-        const plan = await db('project_action_plans')
+        const plan = await db('project_ccts')
             .where({ id: req.params.planId, project_id: req.params.id })
             .first();
-        if (!plan) return res.status(404).json({ error: 'Project action plan not found.' });
+        if (!plan) return res.status(404).json({ error: 'Project CCT not found.' });
 
-        const particular = await db('project_action_plan_particulars')
-            .join('project_action_plan_categories', 'project_action_plan_particulars.project_action_plan_category_id', 'project_action_plan_categories.id')
-            .where('project_action_plan_particulars.id', req.params.particularId)
-            .andWhere('project_action_plan_categories.project_action_plan_id', req.params.planId)
-            .select('project_action_plan_particulars.id')
+        const particular = await db('project_cct_particulars')
+            .join('project_cct_categories', 'project_cct_particulars.project_cct_category_id', 'project_cct_categories.id')
+            .where('project_cct_particulars.id', req.params.particularId)
+            .andWhere('project_cct_categories.project_cct_id', req.params.planId)
+            .select('project_cct_particulars.id')
             .first();
 
         if (!particular) {
-            return res.status(404).json({ error: 'Particular not found in this project action plan.' });
+            return res.status(404).json({ error: 'Particular not found in this project CCT.' });
         }
 
-        const [updated] = await db('project_action_plan_particulars')
+        const [updated] = await db('project_cct_particulars')
             .where({ id: req.params.particularId })
             .update({
                 score_out_of_5: score,
@@ -469,7 +470,7 @@ router.put('/:id/action-plans/:planId/particulars/:particularId/score', authenti
 
         res.json(updated);
     } catch (err) {
-        console.error('Update action plan score error:', err);
+        console.error('Update CCT score error:', err);
         res.status(500).json({ error: 'Failed to update score.' });
     }
 });

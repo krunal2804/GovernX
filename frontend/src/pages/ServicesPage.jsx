@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
+import CCTsPanel from './CCTsPanel';
 import { 
     HiOutlinePlus, HiOutlineTrash, HiOutlineCollection, 
     HiOutlineDocumentAdd, HiOutlineX, HiOutlinePaperClip, HiOutlinePencil,
@@ -19,6 +20,7 @@ function toRoman(num) {
 }
 
 export default function ServicesPage() {
+    const [activeBuilderTab, setActiveBuilderTab] = useState('services');
     const [services, setServices] = useState([]);
     const [selectedServiceId, setSelectedServiceId] = useState(null);
     const [serviceDetails, setServiceDetails] = useState(null);
@@ -139,53 +141,53 @@ export default function ServicesPage() {
     };
 
     const validateBulkRowsLocally = (rows) => {
-        let currentStepOrder = null;
         let currentStepName = '';
+        let currentStepHasTask = false;
 
         return rows.map((row) => {
             const errors = [];
-            const stepOrderRaw = String(row.step_order || '').trim();
-            const stepNameRaw = String(row.step_name || '').trim();
-            const taskOrder = Number.parseInt(String(row.task_order || '').trim(), 10);
-            const taskName = String(row.task_name || '').trim();
-            const durationRaw = String(row.default_duration_days || '').trim();
-            const docName = String(row.reference_doc_name || '').trim();
-            const docLink = String(row.reference_doc_link || '').trim();
+            const stepRaw = String(row.step || '').trim();
+            const taskDescription = String(row.task_description || '').trim();
+            const standardReferenceName = String(row.standard_reference_name || '').trim();
+            const referenceLink = String(row.reference_link || '').trim();
+            const hasReferenceName = !!standardReferenceName;
+            const hasReferenceLink = !!referenceLink;
+            const hasAnyReferenceValue = !!standardReferenceName || !!referenceLink;
 
-            let stepOrder = currentStepOrder;
-            let stepName = currentStepName;
-            const startsNewStep = !!stepOrderRaw || !!stepNameRaw;
+            if (stepRaw) {
+                currentStepName = stepRaw;
+                currentStepHasTask = false;
+            } else if (!currentStepName) {
+                errors.push('Step is required on the first row of each step block');
+            }
 
-            if (startsNewStep) {
-                const parsedStepOrder = Number.parseInt(stepOrderRaw, 10);
-                if (!stepOrderRaw || Number.isNaN(parsedStepOrder) || parsedStepOrder < 1) {
-                    errors.push('Step Order must be provided (number >= 1) when starting a new step');
-                } else {
-                    stepOrder = parsedStepOrder;
-                    currentStepOrder = parsedStepOrder;
+            if (!hasReferenceName && hasReferenceLink) {
+                errors.push('Standard for Reference Name is required when Reference Link is provided');
+            }
+            if (referenceLink && !(referenceLink.startsWith('http://') || referenceLink.startsWith('https://'))) {
+                errors.push('Reference Link must start with http:// or https://');
+            }
+
+            if (!taskDescription) {
+                if (hasAnyReferenceValue && !currentStepHasTask) {
+                    errors.push('Reference-only row requires a previous task in the same step');
                 }
-                stepName = stepNameRaw;
-                currentStepName = stepNameRaw;
-            } else if (!currentStepOrder) {
-                errors.push('Step Order is required on the first row of each step block');
+                if (!hasAnyReferenceValue) {
+                    errors.push('Task/Description is required');
+                }
+            } else {
+                currentStepHasTask = true;
             }
 
-            if (!taskOrder || Number.isNaN(taskOrder) || taskOrder < 1) errors.push('Task Order must be a number >= 1');
-            if (!taskName) errors.push('Task Name is required');
-
-            if (durationRaw) {
-                const parsed = Number.parseInt(durationRaw, 10);
-                if (Number.isNaN(parsed) || parsed < 0) errors.push('Default Duration Days must be a number >= 0');
-            }
-
-            if ((docName && !docLink) || (!docName && docLink)) {
-                errors.push('Reference Doc Name and Link must both be filled together');
-            }
-            if (docLink && !(docLink.startsWith('http://') || docLink.startsWith('https://'))) {
-                errors.push('Reference Doc Link must start with http:// or https://');
-            }
-
-            return { ...row, step_order: stepOrder || '', step_name: stepName || '', errors };
+            return {
+                ...row,
+                step: stepRaw,
+                step_name: currentStepName || '',
+                task_description: taskDescription,
+                standard_reference_name: standardReferenceName,
+                reference_link: referenceLink,
+                errors,
+            };
         });
     };
 
@@ -245,7 +247,7 @@ export default function ServicesPage() {
             if (type === 'service' && (!form.name.trim() || !form.code.trim())) return alert("Name and Code are required.");
             if (type === 'task' && !form.name.trim()) return alert("Task name is required.");
             if (type === 'doc' && !form.document_id) return alert("Please select a document.");
-            if (type === 'doc_create' && (!form.name.trim() || !form.file_url.trim())) return alert("Name and File URL are required.");
+            if (type === 'doc_create' && !form.name.trim()) return alert("Name is required.");
 
             // Check Deep Sync Impact if modifying an existing service component
             if (type !== 'service' || modalConfig.editData) {
@@ -329,10 +331,28 @@ export default function ServicesPage() {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (activeBuilderTab === 'services' && loading) return <div>Loading...</div>;
 
     return (
-        <div className="fade-in" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 100px)' }}>
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: 'calc(100vh - 100px)' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                    className={`btn btn-sm ${activeBuilderTab === 'services' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setActiveBuilderTab('services')}
+                >
+                    Services
+                </button>
+                <button
+                    className={`btn btn-sm ${activeBuilderTab === 'cct' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setActiveBuilderTab('cct')}
+                >
+                    Client Commitment Tracker
+                </button>
+            </div>
+            {activeBuilderTab === 'cct' ? (
+                <CCTsPanel />
+            ) : (
+        <div style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 160px)' }}>
             {/* Sidebar List */}
             <div style={{ width: '300px', flexShrink: 0, background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -431,9 +451,11 @@ export default function ServicesPage() {
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                    <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        View <HiOutlineExternalLink />
-                                                    </a>
+                                                    {doc.file_url && (
+                                                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            View <HiOutlineExternalLink />
+                                                        </a>
+                                                    )}
                                                     <button className="btn-icon" onClick={() => openModal('doc_create', null, doc)} title="Edit Document" style={{ color: 'var(--text-secondary)' }}><HiOutlinePencil /></button>
                                                     <button className="btn-icon" onClick={() => handleDelete('doc_system', doc.id)} title="Delete Document" style={{ color: 'var(--danger)' }}><HiOutlineTrash /></button>
                                                 </div>
@@ -485,7 +507,8 @@ export default function ServicesPage() {
                                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                                                     {task.documents.map(doc => (
                                                                         <div key={doc.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 500 }}>
-                                                                            <HiOutlinePaperClip /> {doc.name}
+                                                                            {doc.file_url ? <HiOutlinePaperClip /> : null}
+                                                                            {doc.name}
                                                                             <HiOutlineX title="Unlink from this Task" style={{ cursor: 'pointer', marginLeft: '4px', color: 'var(--danger)' }} onClick={() => handleDelete('doc', doc.id, task.id)} />
                                                                         </div>
                                                                     ))}
@@ -575,7 +598,7 @@ export default function ServicesPage() {
                                 {modalConfig.type === 'doc_create' && (
                                     <>
                                         <div className="form-group"><label>Document Title *</label><input required className="form-control" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. ISO 9001 Guidelines" /></div>
-                                        <div className="form-group"><label>File Path / URL *</label><input required type="url" className="form-control" value={form.file_url} onChange={e => setForm({...form, file_url: e.target.value})} placeholder="https://..." /></div>
+                                        <div className="form-group"><label>File Path / URL (Optional)</label><input type="url" className="form-control" value={form.file_url} onChange={e => setForm({...form, file_url: e.target.value})} placeholder="https://..." /></div>
                                         <div className="form-group"><label>Description</label><input className="form-control" value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
                                     </>
                                 )}
@@ -602,8 +625,9 @@ export default function ServicesPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
                                         Upload a single-sheet Excel with columns:
-                                        {' '}Step Order, Step Name(optional), Task Order, Task Name, Default Duration Days(optional), Reference Doc Name(optional), Reference Doc Link(optional).
-                                        {' '}For each step block, fill Step Order/Step Name only on the first row and leave them blank on following rows.
+                                        {' '}Step, Task/Description, Standard for Reference Name(optional), Reference Link(optional).
+                                        {' '}For each step block, fill Step only on the first row and leave it blank on following rows.
+                                        {' '}To add multiple references for the same task, keep Task/Description blank on next row and fill reference name (link is optional).
                                     </p>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                                         <input
@@ -623,34 +647,28 @@ export default function ServicesPage() {
                                         Read-only preview of parsed Excel rows.
                                     </div>
                                     <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '10px', maxHeight: '58vh', overflowY: 'auto' }}>
-                                    <table style={{ minWidth: '1650px' }}>
+                                    <table style={{ minWidth: '1200px' }}>
                                         <thead>
                                             <tr>
-                                                <th>Step Order</th>
-                                                <th>Step Name(optional)</th>
-                                                <th>Task Order</th>
-                                                <th>Task Name</th>
-                                                <th>Default Duration Days(optional)</th>
-                                                <th>Reference Doc Name(optional)</th>
-                                                <th>Reference Doc Link(optional)</th>
+                                                <th>Step</th>
+                                                <th>Task/Description</th>
+                                                <th>Standard for Reference Name(optional)</th>
+                                                <th>Reference Link(optional)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {bulkRows.map((row, index) => (
                                                 <tr key={row.id || index}>
-                                                    <td style={{ minWidth: '130px', whiteSpace: 'nowrap' }}>{row.step_order || '-'}</td>
-                                                    <td style={{ minWidth: '260px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.step_name || '-'}</td>
-                                                    <td style={{ minWidth: '130px', whiteSpace: 'nowrap' }}>{row.task_order || '-'}</td>
-                                                    <td style={{ minWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.task_name || '-'}</td>
-                                                    <td style={{ minWidth: '200px', whiteSpace: 'nowrap' }}>{row.default_duration_days === '' ? '-' : row.default_duration_days}</td>
-                                                    <td style={{ minWidth: '300px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.reference_doc_name || '-'}</td>
-                                                    <td style={{ minWidth: '420px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.reference_doc_link || '-'}</td>
+                                                    <td style={{ minWidth: '220px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.step || '-'}</td>
+                                                    <td style={{ minWidth: '420px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.task_description || '-'}</td>
+                                                    <td style={{ minWidth: '320px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.standard_reference_name || '-'}</td>
+                                                    <td style={{ minWidth: '420px', whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.reference_link || '-'}</td>
                                                 </tr>
                                             ))}
                                             {bulkRows.map((row, idx) => (
                                                 (row.errors || []).length > 0 && (
                                                     <tr key={`err-${row.id || idx}`}>
-                                                        <td colSpan={7} style={{ color: 'var(--danger)', fontSize: '12px' }}>
+                                                        <td colSpan={4} style={{ color: 'var(--danger)', fontSize: '12px' }}>
                                                             Row {row.row_number || idx + 2}: {row.errors.join(' | ')}
                                                         </td>
                                                     </tr>
@@ -677,6 +695,8 @@ export default function ServicesPage() {
                         </div>
                     </div>
                 </div>
+            )}
+        </div>
             )}
         </div>
     );

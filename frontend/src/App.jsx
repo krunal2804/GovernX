@@ -10,6 +10,7 @@ import AssignmentDetailPage from './pages/AssignmentDetailPage';
 import AssignmentInfoPage from './pages/AssignmentInfoPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
+import ProjectCCTsPage from './pages/ProjectCCTsPage';
 import UsersPage from './pages/UsersPage';
 import MyProjectsPage from './pages/MyProjectsPage';
 import MyAssignmentsPage from './pages/MyAssignmentsPage';
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="assignments/:id/info" element={<RoleRoute roles={['Director', 'Manager', 'Senior Consultant', 'Consultant', 'Client']}><AssignmentInfoPage /></RoleRoute>} />
         <Route path="projects" element={<RoleRoute roles={['Director', 'Manager', 'Client']}><ProjectsPage /></RoleRoute>} />
         <Route path="projects/:id" element={<RoleRoute roles={['Director', 'Manager', 'Senior Consultant', 'Consultant', 'Client']}><ProjectDetailPage /></RoleRoute>} />
+        <Route path="projects/:id/ccts" element={<RoleRoute roles={['Director', 'Manager', 'Senior Consultant', 'Consultant', 'Client']}><ProjectCCTsPage /></RoleRoute>} />
         <Route path="users" element={<RoleRoute roles={['Director', 'Manager']}><UsersPage /></RoleRoute>} />
         <Route path="my-assignments" element={<RoleRoute roles={['Senior Consultant', 'Consultant']}><MyAssignmentsPage /></RoleRoute>} />
         <Route path="my-projects" element={<RoleRoute roles={['Senior Consultant', 'Consultant']}><MyProjectsPage /></RoleRoute>} />

@@ -1,4 +1,5 @@
-const express = require('express');
+﻿const express = require('express');
+const path = require('path');
 const db = require('../database/db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { resequenceProjectsForService } = require('../utils/projectTaskOrder');
@@ -9,13 +10,10 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 
 const BULK_COLUMNS = {
-    STEP_ORDER: 'Step Order',
-    STEP_NAME: 'Step Name(optional)',
-    TASK_ORDER: 'Task Order',
-    TASK_NAME: 'Task Name',
-    DURATION: 'Default Duration Days(optional)',
-    DOC_NAME: 'Reference Doc Name(optional)',
-    DOC_LINK: 'Reference Doc Link(optional)',
+    STEP: 'Step',
+    TASK_DESCRIPTION: 'Task/Description',
+    STANDARD_REFERENCE_NAME: 'Standard for Reference Name(optional)',
+    REFERENCE_LINK: 'Reference Link(optional)',
 };
 
 function isValidHttpUrl(value) {
@@ -28,79 +26,65 @@ function isValidHttpUrl(value) {
     }
 }
 
+function normalizeDocValue(value) {
+    return String(value ?? '').trim();
+}
+
 function normalizeServiceUploadRows(rows) {
     const normalized = [];
-    let currentStepOrder = null;
     let currentStepName = '';
+    let currentStepHasTask = false;
 
     rows.forEach((rawRow, index) => {
         const rowNumber = index + 2;
-        const stepOrderRaw = String(rawRow[BULK_COLUMNS.STEP_ORDER] ?? '').trim();
-        const stepName = String(rawRow[BULK_COLUMNS.STEP_NAME] ?? '').trim();
-        const taskOrderRaw = String(rawRow[BULK_COLUMNS.TASK_ORDER] ?? '').trim();
-        const taskName = String(rawRow[BULK_COLUMNS.TASK_NAME] ?? '').trim();
-        const durationRaw = String(rawRow[BULK_COLUMNS.DURATION] ?? '').trim();
-        const docName = String(rawRow[BULK_COLUMNS.DOC_NAME] ?? '').trim();
-        const docLink = String(rawRow[BULK_COLUMNS.DOC_LINK] ?? '').trim();
+        const stepRaw = String(rawRow[BULK_COLUMNS.STEP] ?? '').trim();
+        const taskDescription = String(rawRow[BULK_COLUMNS.TASK_DESCRIPTION] ?? '').trim();
+        const standardReferenceName = String(rawRow[BULK_COLUMNS.STANDARD_REFERENCE_NAME] ?? '').trim();
+        const referenceLink = String(rawRow[BULK_COLUMNS.REFERENCE_LINK] ?? '').trim();
 
-        const isCompletelyEmpty = !stepOrderRaw && !stepName && !taskOrderRaw && !taskName && !durationRaw && !docName && !docLink;
+        const isCompletelyEmpty = !stepRaw && !taskDescription && !standardReferenceName && !referenceLink;
         if (isCompletelyEmpty) return;
 
         const errors = [];
+        const hasReferenceName = !!standardReferenceName;
+        const hasReferenceLink = !!referenceLink;
+        const hasAnyReferenceValue = hasReferenceName || hasReferenceLink;
 
-        let stepOrder = currentStepOrder;
-        let effectiveStepName = currentStepName;
+        if (stepRaw) {
+            currentStepName = stepRaw;
+            currentStepHasTask = false;
+        } else if (!currentStepName) {
+            errors.push('Step is required on the first row of each step block');
+        }
 
-        const startsNewStep = !!stepOrderRaw || !!stepName;
-        if (startsNewStep) {
-            const parsedStepOrder = Number.parseInt(stepOrderRaw, 10);
-            if (!stepOrderRaw || Number.isNaN(parsedStepOrder) || parsedStepOrder < 1) {
-                errors.push('Step Order must be provided (number >= 1) when starting a new step');
-            } else {
-                stepOrder = parsedStepOrder;
-                currentStepOrder = parsedStepOrder;
+        if (!hasReferenceName && hasReferenceLink) {
+            errors.push('Standard for Reference Name is required when Reference Link is provided');
+        }
+        if (hasReferenceLink && !isValidHttpUrl(referenceLink)) {
+            errors.push('Reference Link must start with http:// or https://');
+        }
+
+        if (!taskDescription) {
+            if (hasAnyReferenceValue && !currentStepHasTask) {
+                errors.push('Reference-only row requires a previous task in the same step');
             }
-
-            effectiveStepName = stepName;
-            currentStepName = stepName;
-        } else if (!currentStepOrder) {
-            errors.push('Step Order is required on the first row of each step block');
-        }
-
-        const taskOrder = Number.parseInt(taskOrderRaw, 10);
-        if (!taskOrderRaw || Number.isNaN(taskOrder) || taskOrder < 1) {
-            errors.push('Task Order must be a number >= 1');
-        }
-
-        if (!taskName) {
-            errors.push('Task Name is required');
-        }
-
-        let defaultDurationDays = null;
-        if (durationRaw) {
-            defaultDurationDays = Number.parseInt(durationRaw, 10);
-            if (Number.isNaN(defaultDurationDays) || defaultDurationDays < 0) {
-                errors.push('Default Duration Days must be a number >= 0');
+            if (!hasAnyReferenceValue) {
+                errors.push('Task/Description is required');
             }
-        }
-
-        if ((docName && !docLink) || (!docName && docLink)) {
-            errors.push('Reference Doc Name and Link must both be filled together');
-        }
-        if (docLink && !isValidHttpUrl(docLink)) {
-            errors.push('Reference Doc Link must start with http:// or https://');
+        } else {
+            currentStepHasTask = true;
         }
 
         normalized.push({
             id: Date.now() + index,
             row_number: rowNumber,
-            step_order: stepOrder || '',
-            step_name: effectiveStepName || '',
-            task_order: Number.isNaN(taskOrder) ? '' : taskOrder,
-            task_name: taskName,
-            default_duration_days: defaultDurationDays === null ? '' : defaultDurationDays,
-            reference_doc_name: docName,
-            reference_doc_link: docLink,
+            step: stepRaw,
+            step_name: currentStepName || '',
+            task_description: taskDescription,
+            standard_reference_name: standardReferenceName,
+            reference_link: referenceLink,
+            is_step_start: !!stepRaw,
+            is_reference_only: !taskDescription && hasAnyReferenceValue,
             errors,
         });
     });
@@ -160,56 +144,18 @@ router.get('/:id', authenticate, async (req, res) => {
 
 // GET /api/services/bulk/upload-steps/sample-excel
 router.get('/bulk/upload-steps/sample-excel', authenticate, (req, res) => {
-    const wb = XLSX.utils.book_new();
-    const data = [[
-        BULK_COLUMNS.STEP_ORDER,
-        BULK_COLUMNS.STEP_NAME,
-        BULK_COLUMNS.TASK_ORDER,
-        BULK_COLUMNS.TASK_NAME,
-        BULK_COLUMNS.DURATION,
-        BULK_COLUMNS.DOC_NAME,
-        BULK_COLUMNS.DOC_LINK,
-    ]];
-
-    const demoSteps = [
-        'Discovery & Scope',
-        'Current State Mapping',
-        'Gap Analysis',
-        'Future State Design',
-        'Implementation Planning',
-    ];
-
-    demoSteps.forEach((stepName, idx) => {
-        const stepOrder = idx + 1;
-        for (let taskOrder = 1; taskOrder <= 5; taskOrder += 1) {
-            const isStepStart = taskOrder === 1;
-            data.push([
-                isStepStart ? stepOrder : '',
-                isStepStart ? stepName : '',
-                taskOrder,
-                `Task ${taskOrder} for Step ${stepOrder}`,
-                taskOrder * 2,
-                taskOrder === 1 ? `${stepName} - Reference` : '',
-                taskOrder === 1 ? `https://example.com/step-${stepOrder}-reference` : '',
-            ]);
+    const filePath = path.join(__dirname, '../assets/samples/sample_service.xlsx');
+    res.download(filePath, 'sample_service.xlsx', (err) => {
+        if (err) {
+            console.error('Error downloading sample excel:', err);
+            res.status(500).json({ error: 'Failed to download sample file.' });
         }
     });
-
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!cols'] = [
-        { wch: 12 }, { wch: 28 }, { wch: 12 }, { wch: 32 }, { wch: 24 }, { wch: 28 }, { wch: 45 },
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, 'Service Steps');
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    res.setHeader('Content-Disposition', 'attachment; filename="sample_service_steps.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Length', buffer.length);
-    res.end(buffer);
 });
 
 
 // POST /api/services/:id/upload-steps/validate
-router.post('/:id/upload-steps/validate', authenticate, upload.single('file'), async (req, res) => {
+router.post('/:id/upload-steps/validate', authenticate, authorize('services', 'can_edit'), upload.single('file'), async (req, res) => {
     try {
         const service = await db('services').where({ id: req.params.id }).first();
         if (!service) return res.status(404).json({ error: 'Service not found.' });
@@ -232,7 +178,7 @@ router.post('/:id/upload-steps/validate', authenticate, upload.single('file'), a
 });
 
 // POST /api/services/:id/upload-steps/confirm
-router.post('/:id/upload-steps/confirm', authenticate, async (req, res) => {
+router.post('/:id/upload-steps/confirm', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const serviceId = req.params.id;
         const { rows } = req.body;
@@ -241,13 +187,10 @@ router.post('/:id/upload-steps/confirm', authenticate, async (req, res) => {
         }
 
         const normalized = normalizeServiceUploadRows(rows.map((r) => ({
-            [BULK_COLUMNS.STEP_ORDER]: r.step_order,
-            [BULK_COLUMNS.STEP_NAME]: r.step_name,
-            [BULK_COLUMNS.TASK_ORDER]: r.task_order,
-            [BULK_COLUMNS.TASK_NAME]: r.task_name,
-            [BULK_COLUMNS.DURATION]: r.default_duration_days,
-            [BULK_COLUMNS.DOC_NAME]: r.reference_doc_name,
-            [BULK_COLUMNS.DOC_LINK]: r.reference_doc_link,
+            [BULK_COLUMNS.STEP]: r.step,
+            [BULK_COLUMNS.TASK_DESCRIPTION]: r.task_description,
+            [BULK_COLUMNS.STANDARD_REFERENCE_NAME]: r.standard_reference_name,
+            [BULK_COLUMNS.REFERENCE_LINK]: r.reference_link,
         })));
 
         if (normalized.length === 0) {
@@ -259,21 +202,23 @@ router.post('/:id/upload-steps/confirm', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Some rows are invalid. Please fix errors in preview first.', rows: normalized });
         }
 
-        // Build step/task model. Step name can be blank for repeated rows.
-        const byStep = new Map();
+        // Build step/task model by row sequence; a new step starts when Step cell is filled.
+        const orderedSteps = [];
+        let currentStep = null;
         normalized.forEach((row) => {
-            const key = row.step_order;
-            if (!byStep.has(key)) {
-                byStep.set(key, { step_order: row.step_order, step_name: row.step_name || '', tasks: [] });
-            } else if (!byStep.get(key).step_name && row.step_name) {
-                byStep.get(key).step_name = row.step_name;
+            if (row.is_step_start || !currentStep) {
+                currentStep = { step_name: row.step_name || '', tasks: [] };
+                orderedSteps.push(currentStep);
             }
-            byStep.get(key).tasks.push(row);
+            currentStep.tasks.push(row);
         });
 
-        const orderedSteps = Array.from(byStep.values()).sort((a, b) => a.step_order - b.step_order);
-
         await db.transaction(async (trx) => {
+            const activeProjects = await trx('projects')
+                .where({ service_id: serviceId, is_active: true })
+                .whereIn('status', ['not_started', 'in_progress', 'on_hold'])
+                .select('id', 'start_date');
+
             const existingStepIds = (await trx('service_steps').where({ service_id: serviceId }).select('id')).map((x) => x.id);
             const existingTaskIds = existingStepIds.length > 0
                 ? (await trx('service_tasks').whereIn('service_step_id', existingStepIds).select('id')).map((x) => x.id)
@@ -286,6 +231,8 @@ router.post('/:id/upload-steps/confirm', authenticate, async (req, res) => {
                 await trx('service_steps').whereIn('id', existingStepIds).del();
             }
 
+            const newTemplateTasks = [];
+
             for (let stepIdx = 0; stepIdx < orderedSteps.length; stepIdx += 1) {
                 const step = orderedSteps[stepIdx];
                 const [newStep] = await trx('service_steps')
@@ -297,35 +244,65 @@ router.post('/:id/upload-steps/confirm', authenticate, async (req, res) => {
                     })
                     .returning('*');
 
-                const orderedTasks = [...step.tasks].sort((a, b) => a.task_order - b.task_order);
-                for (let taskIdx = 0; taskIdx < orderedTasks.length; taskIdx += 1) {
-                    const task = orderedTasks[taskIdx];
+                const taskItems = [];
+                let currentTaskItem = null;
+
+                for (let rowIdx = 0; rowIdx < step.tasks.length; rowIdx += 1) {
+                    const row = step.tasks[rowIdx];
+                    if (row.task_description) {
+                        currentTaskItem = {
+                            task_description: row.task_description,
+                            references: [],
+                        };
+                        taskItems.push(currentTaskItem);
+                    } else if (!currentTaskItem) {
+                        throw new Error(`Row ${row.row_number}: reference row has no previous task in step "${step.step_name || 'Unnamed Step'}"`);
+                    }
+
+                    if (row.standard_reference_name) {
+                        currentTaskItem.references.push({
+                            name: row.standard_reference_name,
+                            link: row.reference_link || null,
+                        });
+                    }
+                }
+
+                for (let taskIdx = 0; taskIdx < taskItems.length; taskIdx += 1) {
+                    const task = taskItems[taskIdx];
                     const [newTask] = await trx('service_tasks')
                         .insert({
                             service_step_id: newStep.id,
-                            name: task.task_name,
+                            name: task.task_description,
                             description: null,
-                            default_duration_days: task.default_duration_days === '' ? null : Number(task.default_duration_days),
+                            default_duration_days: null,
                             sequence_order: taskIdx,
                             is_mandatory: true,
                         })
                         .returning('*');
 
-                    if (task.reference_doc_name && task.reference_doc_link) {
+                    newTemplateTasks.push({
+                        service_task_id: newTask.id,
+                        step_name: newStep.name || '',
+                        name: newTask.name,
+                        description: newTask.description,
+                        default_duration_days: newTask.default_duration_days,
+                        sequence_order: taskIdx
+                    });
+
+                    for (let refIdx = 0; refIdx < task.references.length; refIdx += 1) {
+                        const ref = task.references[refIdx];
                         let doc = await trx('reference_documents')
-                            .where({
-                                service_id: serviceId,
-                                name: task.reference_doc_name,
-                                file_url: task.reference_doc_link,
-                            })
+                            .where({ service_id: serviceId })
+                            .andWhereRaw('LOWER(name) = LOWER(?)', [ref.name])
+                            .andWhereRaw('LOWER(COALESCE(file_url, \'\')) = LOWER(?)', [ref.link || ''])
                             .first();
 
                         if (!doc) {
                             [doc] = await trx('reference_documents')
                                 .insert({
                                     service_id: serviceId,
-                                    name: task.reference_doc_name,
-                                    file_url: task.reference_doc_link,
+                                    name: ref.name,
+                                    file_url: ref.link,
                                     description: null,
                                 })
                                 .returning('*');
@@ -338,7 +315,52 @@ router.post('/:id/upload-steps/confirm', authenticate, async (req, res) => {
                     }
                 }
             }
+
+            if (activeProjects.length > 0) {
+                for (const p of activeProjects) {
+                    const existingPTs = await trx('project_tasks').where({ project_id: p.id });
+                    
+                    for (const nt of newTemplateTasks) {
+                        const match = existingPTs.find(pt => pt.name === nt.name && pt.step_name === nt.step_name && !pt._handled);
+                        
+                        if (match) {
+                            await trx('project_tasks').where({ id: match.id }).update({
+                                service_task_id: nt.service_task_id,
+                                description: nt.description || match.description,
+                                sequence_order: nt.sequence_order
+                            });
+                            match._handled = true;
+                        } else {
+                            let taskStart = null, taskDue = null;
+                            if (p.start_date && nt.default_duration_days) {
+                                taskStart = p.start_date;
+                                const due = new Date(p.start_date);
+                                due.setDate(due.getDate() + nt.default_duration_days);
+                                taskDue = due.toISOString().split('T')[0];
+                            }
+                            await trx('project_tasks').insert({
+                                project_id: p.id,
+                                service_task_id: nt.service_task_id,
+                                step_name: nt.step_name,
+                                name: nt.name,
+                                description: nt.description,
+                                sequence_order: nt.sequence_order,
+                                is_mandatory: true,
+                                start_date: taskStart,
+                                due_date: taskDue
+                            });
+                        }
+                    }
+
+                    const toDelete = existingPTs.filter(pt => !pt._handled);
+                    if (toDelete.length > 0) {
+                        await trx('project_tasks').whereIn('id', toDelete.map(pt => pt.id)).del();
+                    }
+                }
+            }
         });
+
+        await resequenceProjectsForService(db, serviceId);
 
         res.json({ message: 'Service steps replaced successfully.' });
     } catch (err) {
@@ -348,7 +370,7 @@ router.post('/:id/upload-steps/confirm', authenticate, async (req, res) => {
 });
 
 // POST /api/services
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, authorize('services', 'can_edit'), authorize('services', 'can_create'), async (req, res) => {
     try {
         const { name, code, description } = req.body;
         if (!name || !code) return res.status(400).json({ error: 'Name and Code are required.' });
@@ -367,7 +389,7 @@ router.post('/', authenticate, async (req, res) => {
 });
 
 // PUT /api/services/:id
-router.put('/:id', authenticate, async (req, res) => {
+router.put('/:id', authenticate, authorize('services', 'can_edit'), authorize('services', 'can_edit'), async (req, res) => {
     try {
         const { name, code, description, is_active } = req.body;
         if (!name || !code) return res.status(400).json({ error: 'Name and Code are required.' });
@@ -386,7 +408,7 @@ router.put('/:id', authenticate, async (req, res) => {
 });
 
 // DELETE /api/services/:id (Hard delete with Deep Sync)
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, authorize('services', 'can_edit'), authorize('services', 'can_delete'), async (req, res) => {
     try {
         // Deep Sync: Cascade delete all active projects relying on this service first
         // (This naturally cleans up project_tasks and project references via DB cascade constraints)
@@ -406,7 +428,7 @@ router.delete('/:id', authenticate, async (req, res) => {
 // ==========================================
 
 // POST /api/services/:id/steps
-router.post('/:id/steps', authenticate, async (req, res) => {
+router.post('/:id/steps', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const { name, description } = req.body;
         let { sequence_order } = req.body;
@@ -432,7 +454,7 @@ router.post('/:id/steps', authenticate, async (req, res) => {
 });
 
 // PUT /api/services/steps/:stepId
-router.put('/steps/:stepId', authenticate, async (req, res) => {
+router.put('/steps/:stepId', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const { name, description, sequence_order } = req.body;
         const updateData = { name, description, updated_at: db.fn.now() };
@@ -463,7 +485,7 @@ router.put('/steps/:stepId', authenticate, async (req, res) => {
 });
 
 // DELETE /api/services/steps/:stepId
-router.delete('/steps/:stepId', authenticate, async (req, res) => {
+router.delete('/steps/:stepId', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const step = await db('service_steps').where({ id: req.params.stepId }).first();
         if (!step) return res.status(404).json({ error: 'Step not found.' });
@@ -496,7 +518,7 @@ router.delete('/steps/:stepId', authenticate, async (req, res) => {
 // ==========================================
 
 // POST /api/services/steps/:stepId/tasks
-router.post('/steps/:stepId/tasks', authenticate, async (req, res) => {
+router.post('/steps/:stepId/tasks', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const { name, description } = req.body;
         let { sequence_order, default_duration_days } = req.body;
@@ -556,7 +578,7 @@ router.post('/steps/:stepId/tasks', authenticate, async (req, res) => {
 });
 
 // PUT /api/services/tasks/:taskId
-router.put('/tasks/:taskId', authenticate, async (req, res) => {
+router.put('/tasks/:taskId', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const { name, description, sequence_order } = req.body;
         let { default_duration_days } = req.body;
@@ -589,7 +611,7 @@ router.put('/tasks/:taskId', authenticate, async (req, res) => {
 });
 
 // DELETE /api/services/tasks/:taskId
-router.delete('/tasks/:taskId', authenticate, async (req, res) => {
+router.delete('/tasks/:taskId', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const task = await db('service_tasks').where({ id: req.params.taskId }).first();
         if (!task) return res.status(404).json({ error: 'Task not found.' });
@@ -636,12 +658,31 @@ router.get('/reference_documents/all', authenticate, async (req, res) => {
 });
 
 // POST /api/services/reference_documents
-router.post('/reference_documents', authenticate, async (req, res) => {
+router.post('/reference_documents', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
-        const { name, file_url, description, service_id } = req.body;
-        if (!name || !file_url || !service_id) return res.status(400).json({ error: 'Name, file_url, and service_id are required.' });
+        const name = normalizeDocValue(req.body.name);
+        const file_url = normalizeDocValue(req.body.file_url);
+        const description = req.body.description ?? null;
+        const service_id = req.body.service_id;
+        const fileUrlOrNull = file_url || null;
 
-        const [doc] = await db('reference_documents').insert({ name, file_url, description, service_id }).returning('*');
+        if (!name || !service_id) {
+            return res.status(400).json({ error: 'Name and service_id are required.' });
+        }
+        if (file_url && !isValidHttpUrl(file_url)) {
+            return res.status(400).json({ error: 'File URL must start with http:// or https://.' });
+        }
+
+        const duplicate = await db('reference_documents')
+            .where({ service_id })
+            .andWhereRaw('LOWER(name) = LOWER(?)', [name])
+            .andWhereRaw('LOWER(COALESCE(file_url, \'\')) = LOWER(?)', [file_url || ''])
+            .first();
+        if (duplicate) {
+            return res.status(409).json({ error: 'A reference document with the same name and URL already exists for this service.' });
+        }
+
+        const [doc] = await db('reference_documents').insert({ name, file_url: fileUrlOrNull, description, service_id }).returning('*');
         res.status(201).json(doc);
     } catch (err) {
         res.status(500).json({ error: 'Failed to create reference document.' });
@@ -649,14 +690,35 @@ router.post('/reference_documents', authenticate, async (req, res) => {
 });
 
 // PUT /api/services/reference_documents/:id
-router.put('/reference_documents/:id', authenticate, async (req, res) => {
+router.put('/reference_documents/:id', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
-        const { name, file_url, description } = req.body;
-        if (!name || !file_url) return res.status(400).json({ error: 'Name and file_url are required.' });
+        const name = normalizeDocValue(req.body.name);
+        const file_url = normalizeDocValue(req.body.file_url);
+        const description = req.body.description ?? null;
+        const fileUrlOrNull = file_url || null;
+        if (!name) return res.status(400).json({ error: 'Name is required.' });
+        if (file_url && !isValidHttpUrl(file_url)) {
+            return res.status(400).json({ error: 'File URL must start with http:// or https://.' });
+        }
+
+        const current = await db('reference_documents').where({ id: req.params.id }).first();
+        if (!current) {
+            return res.status(404).json({ error: 'Reference document not found.' });
+        }
+
+        const duplicate = await db('reference_documents')
+            .where({ service_id: current.service_id })
+            .whereNot({ id: req.params.id })
+            .andWhereRaw('LOWER(name) = LOWER(?)', [name])
+            .andWhereRaw('LOWER(COALESCE(file_url, \'\')) = LOWER(?)', [file_url || ''])
+            .first();
+        if (duplicate) {
+            return res.status(409).json({ error: 'A reference document with the same name and URL already exists for this service.' });
+        }
 
         const [doc] = await db('reference_documents')
             .where({ id: req.params.id })
-            .update({ name, file_url, description, updated_at: db.fn.now() })
+            .update({ name, file_url: fileUrlOrNull, description, updated_at: db.fn.now() })
             .returning('*');
         res.json(doc);
     } catch (err) {
@@ -665,7 +727,7 @@ router.put('/reference_documents/:id', authenticate, async (req, res) => {
 });
 
 // DELETE /api/services/reference_documents/:id
-router.delete('/reference_documents/:id', authenticate, async (req, res) => {
+router.delete('/reference_documents/:id', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         await db('reference_documents').where({ id: req.params.id }).delete();
         res.json({ message: 'Reference document permanently deleted.' });
@@ -675,7 +737,7 @@ router.delete('/reference_documents/:id', authenticate, async (req, res) => {
 });
 
 // POST /api/services/tasks/:taskId/documents
-router.post('/tasks/:taskId/documents', authenticate, async (req, res) => {
+router.post('/tasks/:taskId/documents', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         const { document_id } = req.body;
         if (!document_id) return res.status(400).json({ error: 'document_id is required.' });
@@ -692,7 +754,7 @@ router.post('/tasks/:taskId/documents', authenticate, async (req, res) => {
 });
 
 // DELETE /api/services/tasks/:taskId/documents/:docId
-router.delete('/tasks/:taskId/documents/:docId', authenticate, async (req, res) => {
+router.delete('/tasks/:taskId/documents/:docId', authenticate, authorize('services', 'can_edit'), async (req, res) => {
     try {
         await db('service_task_documents')
             .where({ service_task_id: req.params.taskId, document_id: req.params.docId })
@@ -704,3 +766,4 @@ router.delete('/tasks/:taskId/documents/:docId', authenticate, async (req, res) 
 });
 
 module.exports = router;
+
