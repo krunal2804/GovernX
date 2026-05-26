@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -34,7 +34,7 @@ function EmptyDashboard({ roleName }) {
     );
 }
 
-/* ΓöÇΓöÇΓöÇ Skeleton Loading Component ΓöÇΓöÇΓöÇ */
+/* ─── Skeleton Loading Component ─── */
 function ClientPortalSkeleton() {
     const shimmer = `
         @keyframes clientShimmer {
@@ -77,7 +77,7 @@ function ClientPortalSkeleton() {
     );
 }
 
-/* ΓöÇΓöÇΓöÇ Custom Tooltip for Line Chart ΓöÇΓöÇΓöÇ */
+/* ─── Custom Tooltip for Line Chart ─── */
 function CustomLineTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
     const filteredPayload = payload.filter((p) => p.dataKey !== 'Pending');
@@ -101,7 +101,7 @@ function CustomLineTooltip({ active, payload, label }) {
     );
 }
 
-/* ΓöÇΓöÇΓöÇ Single Project Gauge Card ΓöÇΓöÇΓöÇ */
+/* ─── Single Project Gauge Card ─── */
 function ProjectGaugeCard({ project, assignments, onClick }) {
     const total = project.task_total || 0;
     const completed = project.task_completed || 0;
@@ -188,9 +188,9 @@ function ProjectGaugeCard({ project, assignments, onClick }) {
     );
 }
 
-/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
-   CLIENT PORTAL ΓÇö Main Component
-   ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
+/* ═══════════════════════════════════════════
+   CLIENT PORTAL — Main Component
+   ═══════════════════════════════════════════ */
 function ClientPortal({ user }) {
     const navigate = useNavigate();
     const [data, setData] = useState(null);
@@ -231,7 +231,7 @@ function ClientPortal({ user }) {
         return 'purple';
     };
 
-    /* ΓöÇΓöÇ Chart Data Preparation ΓöÇΓöÇ */
+    /* ── Chart Data Preparation ── */
     const isSingleProject = allProjects.length === 1;
 
     let lineChartData = [];
@@ -263,13 +263,13 @@ function ClientPortal({ user }) {
             lineChartData = [{ name: 'No tasks', Progress: 0 }];
         }
     } else {
-        // Line chart: each project as an xΓÇæaxis point
+        // Line chart: each project as an x‑axis point
         lineChartData = allProjects.map((p) => {
             const total = p.task_total || 0;
             const completed = p.task_completed || 0;
             const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
             // Shorten long names for the axis
-            const shortName = p.name.length > 18 ? p.name.slice(0, 16) + 'ΓÇª' : p.name;
+            const shortName = p.name.length > 18 ? p.name.slice(0, 16) + '…' : p.name;
             return {
                 name: shortName,
                 fullName: p.name,
@@ -307,7 +307,7 @@ function ClientPortal({ user }) {
 
     return (
         <div className="fade-in">
-            {/* ΓöÇΓöÇ Welcome Banner ΓöÇΓöÇ */}
+            {/* ── Welcome Banner ── */}
             {showWelcome && (
                 <div style={{
                     marginBottom: '24px',
@@ -343,7 +343,7 @@ function ClientPortal({ user }) {
                 </div>
             )}
 
-            {/* ΓöÇΓöÇ Stats Cards ΓöÇΓöÇ */}
+            {/* ── Stats Cards ── */}
             <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px',
             }}>
@@ -373,7 +373,7 @@ function ClientPortal({ user }) {
                 ))}
             </div>
 
-            {/* ΓöÇΓöÇ Charts Row: Line Chart + Task Distribution ΓöÇΓöÇ */}
+            {/* ── Charts Row: Line Chart + Task Distribution ── */}
             {allProjects.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     {/* Line/Area Chart */}
@@ -500,13 +500,13 @@ function ClientPortal({ user }) {
                 </div>
             )}
 
-            {/* ΓöÇΓöÇ Project Gauge Cards ΓöÇΓöÇ */}
+            {/* ── Project Gauge Cards ── */}
             {allProjects.length > 0 && (
                 <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0d131b', margin: 0 }}>Project Progress</h3>
                         <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 500 }}>
-                            ΓÇö Click any card to view details
+                            — Click any card to view details
                         </span>
                     </div>
                     <div style={{
@@ -526,7 +526,7 @@ function ClientPortal({ user }) {
                 </div>
             )}
 
-            {/* ΓöÇΓöÇ Project Portfolio Table ΓöÇΓöÇ */}
+            {/* ── Project Portfolio Table ── */}
             <div style={{
                 background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
                 overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
@@ -570,7 +570,7 @@ function ClientPortal({ user }) {
                                         <td style={{ fontWeight: 700, color: '#0d131b', fontSize: '14px' }}>
                                             {project.name}
                                         </td>
-                                        <td style={{ color: '#64748b', fontSize: '13px' }}>{parentAssignment?.name || 'ΓÇö'}</td>
+                                        <td style={{ color: '#64748b', fontSize: '13px' }}>{parentAssignment?.name || '—'}</td>
                                         <td><span className="badge badge-purple">{project.service_name}</span></td>
                                         <td><span className={`badge ${getWorkflowStatusBadge(project.status)}`}>{formatWorkflowStatus(project.status)}</span></td>
                                         <td style={{ minWidth: '140px' }}>
@@ -608,8 +608,27 @@ function ClientPortal({ user }) {
                 )}
             </div>
 
-            {/* ΓöÇΓöÇ Responsive overrides ΓöÇΓöÇ */}
-            {/* Handled in index.css */}
+            {/* ── Responsive overrides ── */}
+            <style>{`
+                @media (max-width: 1024px) {
+                    .fade-in > div[style*="gridTemplateColumns: 1.5fr"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+                @media (max-width: 768px) {
+                    .fade-in > div[style*="repeat(4"] {
+                        grid-template-columns: 1fr 1fr !important;
+                    }
+                    .fade-in > div[style*="repeat(3"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .fade-in > div[style*="repeat(4"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
@@ -655,7 +674,7 @@ function ConsultingPortal({ user }) {
         const completed = p.task_completed || 0;
         const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
         return {
-            name: (p.name || '').length > 18 ? `${p.name.slice(0, 16)}ΓÇª` : p.name,
+            name: (p.name || '').length > 18 ? `${p.name.slice(0, 16)}…` : p.name,
             fullName: p.name || '',
             Progress: progress,
             projectId: p.id,
@@ -1001,12 +1020,12 @@ function FullDashboard() {
                 <div className="stat-card"><div className="stat-icon orange"><HiOutlineUsers /></div><div className="stat-info"><h3>{stats.counts.users}</h3><p>Team Members</p></div></div>
             </div>
 
-            {/* ΓöÇΓöÇ Charts Row: Project Progress Line Chart + Task Distribution Pie ΓöÇΓöÇ */}
+            {/* ── Charts Row: Project Progress Line Chart + Task Distribution Pie ── */}
             {stats.recentProjects.length > 0 && (() => {
                 // Prepare line chart data from recent projects
                 const lineChartData = stats.recentProjects.map((p) => {
                     const progress = parseFloat(p.progress_percentage) || 0;
-                    const shortName = p.name.length > 18 ? p.name.slice(0, 16) + 'ΓÇª' : p.name;
+                    const shortName = p.name.length > 18 ? p.name.slice(0, 16) + '…' : p.name;
                     return {
                         name: shortName,
                         fullName: p.name,
