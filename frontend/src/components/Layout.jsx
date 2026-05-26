@@ -294,7 +294,6 @@ export default function Layout() {
                 <nav className="sidebar-nav">
                     {/* ── MAIN MENU ── */}
                     <div className="sidebar-section">
-                        <div className="sidebar-section-title">Main Menu</div>
                         {navItems.map((item) => (
                             <NavLink
                                 key={item.path}

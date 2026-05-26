@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -34,56 +34,7 @@ function EmptyDashboard({ roleName }) {
     );
 }
 
-/* ─── Skeleton Loading Component ─── */
-function ClientPortalSkeleton() {
-    const shimmer = `
-        @keyframes clientShimmer {
-            0% { background-position: -400px 0; }
-            100% { background-position: 400px 0; }
-        }
-    `;
-    const skeletonStyle = (w, h, mb = 0, br = '8px') => ({
-        width: w, height: h, marginBottom: mb, borderRadius: br,
-        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 37%, #f0f0f0 63%)',
-        backgroundSize: '800px 100%',
-        animation: 'clientShimmer 1.4s ease infinite',
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../api';
-import { useAuth } from '../context/AuthContext';
-import { formatWorkflowStatus, getWorkflowStatusBadge } from '../utils/workflowStatus';
-import {
-    HiOutlineOfficeBuilding,
-    HiOutlineCollection,
-    HiOutlineClipboardList,
-    HiOutlineUsers,
-    HiOutlineClock,
-    HiOutlineCheckCircle,
-    HiOutlineExclamationCircle,
-    HiOutlineX,
-    HiOutlineTrendingUp,
-    HiOutlineChartPie,
-} from 'react-icons/hi';
-import {
-    ResponsiveContainer,
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, ComposedChart,
-    RadialBarChart, RadialBar,
-    PieChart, Pie, Cell,
-} from 'recharts';
-
-function EmptyDashboard({ roleName }) {
-    return (
-        <div className="fade-in">
-            <div className="empty-state" style={{ paddingTop: '120px' }}>
-                <div className="icon">Under Construction</div>
-                <h3>Welcome, {roleName}!</h3>
-                <p>Your portal is coming soon. We're building features tailored for your role.</p>
-            </div>
-        </div>
-    );
-}
-
-/* ─── Skeleton Loading Component ─── */
+/* ΓöÇΓöÇΓöÇ Skeleton Loading Component ΓöÇΓöÇΓöÇ */
 function ClientPortalSkeleton() {
     const shimmer = `
         @keyframes clientShimmer {
@@ -105,18 +56,18 @@ function ClientPortalSkeleton() {
             <div style={skeletonStyle('100%', '120px', 24, '12px')} />
 
             {/* Stats skeleton */}
-            <div className="dashboard-stats-row" style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '28px' }}>
                 {[...Array(4)].map((_, i) => <div key={i} style={skeletonStyle('100%', '100px', 0, '12px')} />)}
             </div>
 
             {/* Charts skeleton */}
-            <div className="dashboard-charts-grid" style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '28px' }}>
                 <div style={skeletonStyle('100%', '340px', 0, '12px')} />
                 <div style={skeletonStyle('100%', '340px', 0, '12px')} />
             </div>
 
             {/* Gauge row skeleton */}
-            <div className="dashboard-gauges-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '28px' }}>
                 {[...Array(3)].map((_, i) => <div key={i} style={skeletonStyle('100%', '260px', 0, '12px')} />)}
             </div>
 
@@ -126,7 +77,7 @@ function ClientPortalSkeleton() {
     );
 }
 
-/* ─── Custom Tooltip for Line Chart ─── */
+/* ΓöÇΓöÇΓöÇ Custom Tooltip for Line Chart ΓöÇΓöÇΓöÇ */
 function CustomLineTooltip({ active, payload, label }) {
     if (!active || !payload?.length) return null;
     const filteredPayload = payload.filter((p) => p.dataKey !== 'Pending');
@@ -150,7 +101,7 @@ function CustomLineTooltip({ active, payload, label }) {
     );
 }
 
-/* ─── Single Project Gauge Card ─── */
+/* ΓöÇΓöÇΓöÇ Single Project Gauge Card ΓöÇΓöÇΓöÇ */
 function ProjectGaugeCard({ project, assignments, onClick }) {
     const total = project.task_total || 0;
     const completed = project.task_completed || 0;
@@ -237,9 +188,9 @@ function ProjectGaugeCard({ project, assignments, onClick }) {
     );
 }
 
-/* ═══════════════════════════════════════════
-   CLIENT PORTAL — Main Component
-   ═══════════════════════════════════════════ */
+/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+   CLIENT PORTAL ΓÇö Main Component
+   ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */
 function ClientPortal({ user }) {
     const navigate = useNavigate();
     const [data, setData] = useState(null);
@@ -280,7 +231,7 @@ function ClientPortal({ user }) {
         return 'purple';
     };
 
-    /* ── Chart Data Preparation ── */
+    /* ΓöÇΓöÇ Chart Data Preparation ΓöÇΓöÇ */
     const isSingleProject = allProjects.length === 1;
 
     let lineChartData = [];
@@ -312,13 +263,13 @@ function ClientPortal({ user }) {
             lineChartData = [{ name: 'No tasks', Progress: 0 }];
         }
     } else {
-        // Line chart: each project as an x‑axis point
+        // Line chart: each project as an xΓÇæaxis point
         lineChartData = allProjects.map((p) => {
             const total = p.task_total || 0;
             const completed = p.task_completed || 0;
             const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
             // Shorten long names for the axis
-            const shortName = p.name.length > 18 ? p.name.slice(0, 16) + '…' : p.name;
+            const shortName = p.name.length > 18 ? p.name.slice(0, 16) + 'ΓÇª' : p.name;
             return {
                 name: shortName,
                 fullName: p.name,
@@ -356,7 +307,7 @@ function ClientPortal({ user }) {
 
     return (
         <div className="fade-in">
-            {/* ── Welcome Banner ── */}
+            {/* ΓöÇΓöÇ Welcome Banner ΓöÇΓöÇ */}
             {showWelcome && (
                 <div style={{
                     marginBottom: '24px',
@@ -392,8 +343,10 @@ function ClientPortal({ user }) {
                 </div>
             )}
 
-            {/* ── Stats Cards ── */}
-            <div className="dashboard-stats-row">
+            {/* ΓöÇΓöÇ Stats Cards ΓöÇΓöÇ */}
+            <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px',
+            }}>
                 {[
                     { label: 'Total Projects', value: counts.projects || 0, icon: <HiOutlineClipboardList />, color: '#2563EB', bg: 'rgba(37,99,235,0.08)' },
                     { label: 'Tasks Completed', value: taskStats.completed || 0, icon: <HiOutlineCheckCircle />, color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
@@ -420,9 +373,9 @@ function ClientPortal({ user }) {
                 ))}
             </div>
 
-            {/* ── Charts Row: Line Chart + Task Distribution ── */}
+            {/* ΓöÇΓöÇ Charts Row: Line Chart + Task Distribution ΓöÇΓöÇ */}
             {allProjects.length > 0 && (
-                <div className="dashboard-charts-grid">
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     {/* Line/Area Chart */}
                     <div style={{
                         background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
@@ -547,17 +500,19 @@ function ClientPortal({ user }) {
                 </div>
             )}
 
-            {/* ── Project Gauge Cards ── */}
+            {/* ΓöÇΓöÇ Project Gauge Cards ΓöÇΓöÇ */}
             {allProjects.length > 0 && (
                 <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0d131b', margin: 0 }}>Project Progress</h3>
                         <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 500 }}>
-                            — Click any card to view details
+                            ΓÇö Click any card to view details
                         </span>
                     </div>
-                    <div className="dashboard-gauges-grid" style={{
+                    <div style={{
+                        display: 'grid',
                         gridTemplateColumns: `repeat(${Math.min(allProjects.length, 3)}, 1fr)`,
+                        gap: '16px',
                     }}>
                         {allProjects.map((p) => (
                             <ProjectGaugeCard
@@ -571,7 +526,7 @@ function ClientPortal({ user }) {
                 </div>
             )}
 
-            {/* ── Project Portfolio Table ── */}
+            {/* ΓöÇΓöÇ Project Portfolio Table ΓöÇΓöÇ */}
             <div style={{
                 background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
                 overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
@@ -615,7 +570,7 @@ function ClientPortal({ user }) {
                                         <td style={{ fontWeight: 700, color: '#0d131b', fontSize: '14px' }}>
                                             {project.name}
                                         </td>
-                                        <td style={{ color: '#64748b', fontSize: '13px' }}>{parentAssignment?.name || '—'}</td>
+                                        <td style={{ color: '#64748b', fontSize: '13px' }}>{parentAssignment?.name || 'ΓÇö'}</td>
                                         <td><span className="badge badge-purple">{project.service_name}</span></td>
                                         <td><span className={`badge ${getWorkflowStatusBadge(project.status)}`}>{formatWorkflowStatus(project.status)}</span></td>
                                         <td style={{ minWidth: '140px' }}>
@@ -653,7 +608,7 @@ function ClientPortal({ user }) {
                 )}
             </div>
 
-            {/* ── Responsive overrides ── */}
+            {/* ΓöÇΓöÇ Responsive overrides ΓöÇΓöÇ */}
             {/* Handled in index.css */}
         </div>
     );
@@ -700,7 +655,7 @@ function ConsultingPortal({ user }) {
         const completed = p.task_completed || 0;
         const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
         return {
-            name: (p.name || '').length > 18 ? `${p.name.slice(0, 16)}…` : p.name,
+            name: (p.name || '').length > 18 ? `${p.name.slice(0, 16)}ΓÇª` : p.name,
             fullName: p.name || '',
             Progress: progress,
             projectId: p.id,
@@ -786,7 +741,7 @@ function ConsultingPortal({ user }) {
             </div>
 
             {activeProjects.length > 0 && (
-                <div className="dashboard-charts-grid" style={{ marginBottom: '28px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '28px' }}>
                     <div style={{
                         background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
                         padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
@@ -889,6 +844,200 @@ function ConsultingPortal({ user }) {
                     </div>
                 </div>
             )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
+                <div className="card">
+                    <div className="card-header">
+                        <span className="card-title">Task Overview</span>
+                    </div>
+                    <div className="stats-grid" style={{ marginBottom: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="stat-icon blue" style={{ width: '40px', height: '40px', fontSize: '18px' }}><HiOutlineClock /></div>
+                            <div><div style={{ fontSize: '22px', fontWeight: 800 }}>{taskStats.total}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Tasks</div></div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="stat-icon green" style={{ width: '40px', height: '40px', fontSize: '18px' }}><HiOutlineCheckCircle /></div>
+                            <div><div style={{ fontSize: '22px', fontWeight: 800 }}>{taskStats.completed}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Completed</div></div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="stat-icon orange" style={{ width: '40px', height: '40px', fontSize: '18px' }}><HiOutlineClock /></div>
+                            <div><div style={{ fontSize: '22px', fontWeight: 800 }}>{taskStats.in_progress}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>In Progress</div></div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="stat-icon red" style={{ width: '40px', height: '40px', fontSize: '18px' }}><HiOutlineExclamationCircle /></div>
+                            <div><div style={{ fontSize: '22px', fontWeight: 800 }}>{taskStats.overdue}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Overdue</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="card">
+                    <div className="card-header">
+                        <span className="card-title">Project Status Breakdown</span>
+                    </div>
+                    {projectStatuses.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {projectStatuses.map((projectStatus) => (
+                                <div key={projectStatus.status} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span className={`badge ${getWorkflowStatusBadge(projectStatus.status)}`}>
+                                        {formatWorkflowStatus(projectStatus.status).toUpperCase()}
+                                    </span>
+                                    <span style={{ fontWeight: 700, fontSize: '18px' }}>{projectStatus.count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No projects yet.</p>
+                    )}
+                </div>
+            </div>
+
+            <div className="table-container" style={{ marginBottom: '28px' }}>
+                <div className="table-header">
+                    <h2>Active Projects ({activeProjects.length})</h2>
+                </div>
+                {activeProjects.length > 0 ? (
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Project</th>
+                                <th>Assignment</th>
+                                <th>Service</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {activeProjects.map((project) => {
+                                const total = project.task_total || 0;
+                                const completed = project.task_completed || 0;
+                                const progress = total > 0 ? ((completed / total) * 100).toFixed(0) : 0;
+                                const parentAssignment = assignments.find((assignment) => assignment.projects?.some((assignmentProject) => assignmentProject.id === project.id));
+                                return (
+                                    <tr key={project.id}>
+                                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{project.name}</td>
+                                        <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{parentAssignment?.name || '-'}</td>
+                                        <td><span className="badge badge-purple">{project.service_name}</span></td>
+                                        <td><span className={`badge ${getWorkflowStatusBadge(project.status)}`}>{formatWorkflowStatus(project.status)}</span></td>
+                                        <td style={{ minWidth: '120px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div className="progress-bar" style={{ flex: 1 }}>
+                                                    <div className={`fill ${getProgressColor(parseFloat(progress))}`} style={{ width: `${progress}%` }} />
+                                                </div>
+                                                <span style={{ fontSize: '12px', fontWeight: 600, minWidth: '36px' }}>{progress}%</span>
+                                            </div>
+                                            {project.task_overdue > 0 && <div style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 600, marginTop: '2px' }}>{project.task_overdue} overdue</div>}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="empty-state" style={{ padding: '40px 20px' }}>
+                        <div className="icon"><HiOutlineClipboardList /></div>
+                        <h3>No active projects</h3>
+                        <p>You have no in-progress or pending projects at the moment.</p>
+                    </div>
+                )}
+            </div>
+
+            {(taskStats.not_started > 0 || taskStats.in_progress > 0 || taskStats.overdue > 0) && (
+                <div className="card">
+                    <div className="card-header"><span className="card-title">Pending Tasks Summary</span></div>
+                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '140px', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                            <div className="stat-icon blue" style={{ width: '36px', height: '36px', fontSize: '16px' }}><HiOutlineClock /></div>
+                            <div><div style={{ fontSize: '20px', fontWeight: 800 }}>{taskStats.in_progress}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>In Progress</div></div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '140px', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                            <div className="stat-icon orange" style={{ width: '36px', height: '36px', fontSize: '16px' }}><HiOutlineClipboardList /></div>
+                            <div><div style={{ fontSize: '20px', fontWeight: 800 }}>{taskStats.not_started}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Not Started</div></div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '140px', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                            <div className="stat-icon red" style={{ width: '36px', height: '36px', fontSize: '16px' }}><HiOutlineExclamationCircle /></div>
+                            <div><div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--danger)' }}>{taskStats.overdue}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Overdue</div></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {assignments.length === 0 && (
+                <div className="empty-state" style={{ paddingTop: '60px' }}>
+                    <div className="icon">Tasks</div>
+                    <h3>No assignments yet</h3>
+                    <p>You haven't been added to any assignments. Your manager will add you when a project begins.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function FullDashboard() {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        api.get('/dashboard/stats')
+            .then((res) => setStats(res.data))
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) return <div className="loading-spinner"><div className="spinner" /></div>;
+    if (!stats) return null;
+
+    const getProgressColor = (pct) => {
+        if (pct >= 75) return 'green';
+        if (pct >= 40) return 'orange';
+        return 'purple';
+    };
+
+    return (
+        <div className="fade-in">
+            <div className="stats-grid">
+                <div className="stat-card"><div className="stat-icon purple"><HiOutlineOfficeBuilding /></div><div className="stat-info"><h3>{stats.counts.organizations}</h3><p>Organizations</p></div></div>
+                <div className="stat-card"><div className="stat-icon blue"><HiOutlineCollection /></div><div className="stat-info"><h3>{stats.counts.assignments}</h3><p>Assignments</p></div></div>
+                <div className="stat-card"><div className="stat-icon green"><HiOutlineClipboardList /></div><div className="stat-info"><h3>{stats.counts.projects}</h3><p>Projects</p></div></div>
+                <div className="stat-card"><div className="stat-icon orange"><HiOutlineUsers /></div><div className="stat-info"><h3>{stats.counts.users}</h3><p>Team Members</p></div></div>
+            </div>
+
+            {/* ΓöÇΓöÇ Charts Row: Project Progress Line Chart + Task Distribution Pie ΓöÇΓöÇ */}
+            {stats.recentProjects.length > 0 && (() => {
+                // Prepare line chart data from recent projects
+                const lineChartData = stats.recentProjects.map((p) => {
+                    const progress = parseFloat(p.progress_percentage) || 0;
+                    const shortName = p.name.length > 18 ? p.name.slice(0, 16) + 'ΓÇª' : p.name;
+                    return {
+                        name: shortName,
+                        fullName: p.name,
+                        Progress: Math.round(progress),
+                        projectId: p.id,
+                    };
+                }).sort((a, b) => {
+                    if (a.Progress !== b.Progress) return a.Progress - b.Progress;
+                    return a.fullName.localeCompare(b.fullName);
+                });
+
+                // Task distribution pie data
+                const taskPieData = [
+                    { name: 'Completed', value: stats.taskStats.completed || 0, color: '#10B981' },
+                    { name: 'In Progress', value: stats.taskStats.in_progress || 0, color: '#2563EB' },
+                    { name: 'Not Started', value: stats.taskStats.not_started || 0, color: '#9CA3AF' },
+                    { name: 'Overdue', value: stats.taskStats.overdue || 0, color: '#EF4444' },
+                ].filter(d => d.value > 0);
+
+                const overallProgress = stats.taskStats.total > 0
+                    ? Math.round((stats.taskStats.completed / stats.taskStats.total) * 100)
+                    : 0;
+
+                return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                        {/* Line/Area Chart */}
+                        <div style={{
+                            background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
+                            padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(37,99,235,0.08)', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
                                     <HiOutlineTrendingUp />
                                 </div>
@@ -995,7 +1144,7 @@ function ConsultingPortal({ user }) {
                 );
             })()}
 
-            <div className="dashboard-two-col-grid">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
                 <div className="card">
                     <div className="card-header"><span className="card-title">Task Overview</span></div>
                     <div className="stats-grid" style={{ marginBottom: 0 }}>
