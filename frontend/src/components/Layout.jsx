@@ -287,7 +287,7 @@ export default function Layout() {
                         title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     >
-                        {sidebarCollapsed ? <HiOutlineChevronRight /> : <HiOutlineChevronLeft />}
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>dock_to_left</span>
                     </button>
                 </div>
 
@@ -326,9 +326,11 @@ export default function Layout() {
                         <div className="name">{user?.first_name} {user?.last_name}</div>
                         <div className="role">{user?.role_name}</div>
                     </div>
-                    <button className="logout-btn" onClick={logout} title="Logout">
-                        <HiOutlineLogout />
-                    </button>
+                    {!sidebarCollapsed && (
+                        <button className="logout-btn" onClick={logout} title="Logout">
+                            <HiOutlineLogout />
+                        </button>
+                    )}
                 </div>
             </aside>
 

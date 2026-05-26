@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -11,6 +12,10 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const [mode, setMode] = useState('login'); // login | request | verify | reset
     const [resetEmail, setResetEmail] = useState('');
@@ -157,7 +162,12 @@ export default function LoginPage() {
 
                             <div className="form-group">
                                 <label>Password</label>
-                                <input type="password" className="form-control" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                                <div style={{ position: 'relative' }}>
+                                    <input type={showPassword ? "text" : "password"} className="form-control password-input" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ paddingRight: '40px' }} />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                                        {showPassword ? <HiOutlineEyeOff size={18} /> : <HiOutlineEye size={18} />}
+                                    </button>
+                                </div>
                                 <div style={{ marginTop: '8px' }}>
                                     <a
                                         href="#"
@@ -215,11 +225,21 @@ export default function LoginPage() {
                         <form onSubmit={handleResetConfirm}>
                             <div className="form-group">
                                 <label>New Password</label>
-                                <input type="password" className="form-control" placeholder="********" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                                <div style={{ position: 'relative' }}>
+                                    <input type={showNewPassword ? "text" : "password"} className="form-control password-input" placeholder="********" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required style={{ paddingRight: '40px' }} />
+                                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                                        {showNewPassword ? <HiOutlineEyeOff size={18} /> : <HiOutlineEye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label>Confirm New Password</label>
-                                <input type="password" className="form-control" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                                <div style={{ position: 'relative' }}>
+                                    <input type={showConfirmPassword ? "text" : "password"} className="form-control password-input" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ paddingRight: '40px' }} />
+                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                                        {showConfirmPassword ? <HiOutlineEyeOff size={18} /> : <HiOutlineEye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                             <button type="submit" className="btn btn-primary" disabled={loading}>
                                 {loading ? 'Updating...' : 'Reset Password'}

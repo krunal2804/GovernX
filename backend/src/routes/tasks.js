@@ -25,6 +25,7 @@ router.get('/', authenticate, async (req, res) => {
                 db.raw('COALESCE(service_steps.name, project_tasks.step_name) as step_name'),
                 'users.first_name as assignee_first_name',
                 'users.last_name as assignee_last_name',
+                'service_steps.id as service_step_id',
                 'service_tasks.sequence_order as service_task_sequence_order',
                 'service_steps.sequence_order as service_step_sequence_order'
             )
@@ -144,6 +145,7 @@ router.get('/my', authenticate, async (req, res) => {
                 'projects.name as project_name',
                 'assignments.name as assignment_name',
                 'organizations.name as organization_name',
+                'service_steps.id as service_step_id',
                 'service_tasks.sequence_order as service_task_sequence_order',
                 'service_steps.sequence_order as service_step_sequence_order'
             )

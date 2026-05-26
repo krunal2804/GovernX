@@ -221,23 +221,37 @@ export default function ProjectDetailPage() {
                         </div>
                         <div style={{ padding: '12px' }}>
                             {(() => {
-                                const groups = {};
+                                const groups = new Map();
                                 project.tasks.forEach((task) => {
-                                    const name = task.step_name || 'Other';
-                                    if (!groups[name]) groups[name] = [];
-                                    groups[name].push(task);
+                                    const stepLabel = task.step_name || 'Other';
+                                    const stepKey = task.service_step_id
+                                        ? `service-step-${task.service_step_id}`
+                                        : `fallback-${task.service_step_sequence_order ?? 'none'}-${stepLabel}`;
+
+                                    if (!groups.has(stepKey)) {
+                                        groups.set(stepKey, {
+                                            key: stepKey,
+                                            name: stepLabel,
+                                            sequence: task.service_step_sequence_order,
+                                            tasks: [],
+                                        });
+                                    }
+                                    groups.get(stepKey).tasks.push(task);
                                 });
 
-                                const stepNames = Object.keys(groups).sort((a, b) => {
-                                    if (a === 'Other') return 1;
-                                    if (b === 'Other') return -1;
+                                const stepGroups = Array.from(groups.values()).sort((a, b) => {
+                                    if (a.name === 'Other') return 1;
+                                    if (b.name === 'Other') return -1;
+                                    const aSequence = Number.isFinite(Number(a.sequence)) ? Number(a.sequence) : Number.MAX_SAFE_INTEGER;
+                                    const bSequence = Number.isFinite(Number(b.sequence)) ? Number(b.sequence) : Number.MAX_SAFE_INTEGER;
+                                    if (aSequence !== bSequence) return aSequence - bSequence;
                                     return 0;
                                 });
 
                                 const romanNumerals = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
 
-                                return stepNames.length > 0 ? stepNames.map((stepName, stepIndex) => (
-                                    <div key={stepName} style={{ marginBottom: '24px' }}>
+                                return stepGroups.length > 0 ? stepGroups.map((stepGroup, stepIndex) => (
+                                    <div key={stepGroup.key} style={{ marginBottom: '24px' }}>
                                         <div style={{
                                             background: 'var(--bg-secondary)',
                                             padding: '12px 16px',
@@ -247,10 +261,10 @@ export default function ProjectDetailPage() {
                                             color: 'var(--text-primary)',
                                             marginBottom: '12px'
                                         }}>
-                                            {stepName === 'Other' ? stepName : `Step ${romanNumerals[stepIndex] || stepIndex} - ${stepName}`}
+                                            {stepGroup.name === 'Other' ? stepGroup.name : `Step ${romanNumerals[stepIndex] || stepIndex} - ${stepGroup.name}`}
                                         </div>
                                         <div className="task-list">
-                                            {groups[stepName].map((task) => {
+                                            {stepGroup.tasks.map((task) => {
                                                 const isLocked = lockedTaskIds.has(task.id);
                                                 const taskActionText = getTaskActionText(task);
 

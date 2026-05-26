@@ -166,7 +166,7 @@ a:hover {
   pointer-events: none;
   width: 36px;
   height: 36px;
-  background: var(--bg-hover);
+  background: transparent;
   border: none;
   z-index: 2;
 }
@@ -202,15 +202,15 @@ a:hover {
 .sidebar-brand-toggle {
   width: 30px;
   height: 30px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
+  background: transparent;
   color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: var(--transition);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-brand-toggle:hover {
@@ -1692,4 +1692,15 @@ select.form-control {
 .bordered-table th:not(:last-child),
 .bordered-table td:not(:last-child) {
   border-right: 1px solid var(--border);
+}
+
+ /* Hide default browser password reveal icon */
+.password-input::-ms-reveal,
+.password-input::-ms-clear,
+.password-input::-webkit-contacts-auto-fill-button,
+.password-input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+ button:focus, button:focus-visible {
+  outline: none;
 }
