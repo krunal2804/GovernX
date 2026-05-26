@@ -13,17 +13,30 @@
 - **Centralized Workflows:** Manage assignments from "Not Started" to "Completed" with full visibility into progress and billing.
 
 ### Project Structure
-```
+```text
 GovernX/
-├── backend/                  # Express.js API & PostgreSQL database config
-│   ├── src/routes/           # API endpoints
-│   ├── src/database/         # Knex migrations and seeds
-│   └── Dockerfile
-├── frontend/                 # React & Vite Single Page App
-│   ├── src/components/       # Reusable UI components
-│   ├── src/pages/            # Main application views
-│   └── Dockerfile
-└── docker-compose.yml        # Multi-container orchestration
+├── backend/                  # Express.js + PostgreSQL API
+│   ├── src/
+│   │   ├── server.js         # Express app entry point
+│   │   ├── middleware/       # JWT auth & RBAC verification
+│   │   ├── routes/           # API handlers (auth, projects, tasks)
+│   │   └── database/
+│   │       ├── migrations/   # Knex database schemas
+│   │       └── seeds/        # Initial roles and permissions
+│   ├── Dockerfile            # Backend container configuration
+│   └── knexfile.js           # Knex environment settings
+│
+├── frontend/                 # React + Vite SPA
+│   ├── src/
+│   │   ├── App.jsx           # React Router configuration
+│   │   ├── api.js            # Axios client with interceptors
+│   │   ├── context/          # Global React state (AuthContext)
+│   │   ├── components/       # Shared UI components (Layout, Sidebar)
+│   │   └── pages/            # View components (Dashboard, Login)
+│   ├── Dockerfile            # Frontend container configuration
+│   └── nginx.conf            # Nginx config for frontend routing
+│
+└── docker-compose.yml        # Full-stack Docker orchestration
 ```
 
 ### Quick Start (Local)
