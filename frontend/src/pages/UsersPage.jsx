@@ -1,8 +1,10 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import api from '../api';
 import { HiOutlineUsers, HiOutlinePlus, HiOutlineTrash, HiOutlineUpload, HiOutlineDownload, HiOutlineFilter } from 'react-icons/hi';
+import { useAuth } from '../context/AuthContext';
 
 export default function UsersPage() {
+    const { user } = useAuth();
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -49,11 +51,15 @@ export default function UsersPage() {
         ])
             .then(([usersRes, rolesRes]) => {
                 setUsers(usersRes.data);
-                setRoles(rolesRes.data.filter((r) => r.side === 'consulting'));
+                const consultingRoles = rolesRes.data.filter((r) => r.side === 'consulting');
+                // Filter based on hierarchy_level: user can only assign roles with a higher hierarchy_level number (less privilege)
+                // Director (level 1) can assign anything.
+                const allowedRoles = consultingRoles.filter(r => user?.hierarchy_level === 1 || r.hierarchy_level > (user?.hierarchy_level || 99));
+                setRoles(allowedRoles);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
-    }, []);
+    }, [user?.hierarchy_level]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

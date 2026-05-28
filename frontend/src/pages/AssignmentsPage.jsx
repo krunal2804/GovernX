@@ -309,9 +309,7 @@ export default function AssignmentsPage() {
     
 
     const getProgressColor = (pct) => {
-        if (pct >= 75) return 'green';
-        if (pct >= 40) return 'orange';
-        return 'purple';
+        return pct >= 50 ? 'green' : 'blue';
     };
 
     const statusPriority = {

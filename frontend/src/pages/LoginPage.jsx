@@ -67,7 +67,12 @@ export default function LoginPage() {
             setSuccess('Code verified. Set your new password.');
             setMode('reset');
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to verify code.');
+            const errorMsg = err.response?.data?.error || 'Failed to verify code.';
+            setError(errorMsg);
+            if (errorMsg.includes('Please request a new code')) {
+                setMode('request');
+                setResetCode('');
+            }
         } finally {
             setLoading(false);
         }

@@ -7,7 +7,7 @@ const { sendPasswordResetCode } = require('../utils/mailer');
 
 const router = express.Router();
 const RESET_CODE_EXPIRY_MINUTES = 5;
-const RESET_MAX_ATTEMPTS = 3;
+const RESET_MAX_ATTEMPTS = 2;
 
 function generateSixDigitCode() {
     return String(Math.floor(100000 + Math.random() * 900000));
@@ -65,11 +65,39 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// ─── Rate-limiting for password reset requests (per email) ───
+const resetRequestTracker = new Map(); // email -> { count, firstRequestAt }
+const RESET_REQUEST_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_RESET_REQUESTS_PER_WINDOW = 3;
+
+// Clean up stale entries every 30 minutes to prevent memory leak
+setInterval(() => {
+    const now = Date.now();
+    for (const [email, tracker] of resetRequestTracker) {
+        if (now - tracker.firstRequestAt > RESET_REQUEST_WINDOW_MS) {
+            resetRequestTracker.delete(email);
+        }
+    }
+}, 30 * 60 * 1000);
+
 // POST /api/auth/password-reset/request
 router.post('/password-reset/request', async (req, res) => {
     try {
         const email = String(req.body?.email || '').trim().toLowerCase();
         if (!email) return res.status(400).json({ error: 'Email is required.' });
+
+        // ─── Rate-limit check: max N requests per email per window ───
+        const now = Date.now();
+        const tracker = resetRequestTracker.get(email);
+        if (tracker && (now - tracker.firstRequestAt < RESET_REQUEST_WINDOW_MS)) {
+            if (tracker.count >= MAX_RESET_REQUESTS_PER_WINDOW) {
+                // Return 429 so the frontend knows not to advance to the verify step
+                return res.status(429).json({ error: 'Too many requests. Please wait before trying again.' });
+            }
+            tracker.count++;
+        } else {
+            resetRequestTracker.set(email, { count: 1, firstRequestAt: now });
+        }
 
         const user = await db('users').whereRaw('LOWER(email) = ?', [email]).where({ is_active: true }).first();
         if (!user) {

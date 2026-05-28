@@ -3,7 +3,10 @@
  * Inserts all consulting and client roles with hierarchy levels.
  */
 exports.seed = async function (knex) {
-    // Clear existing roles
+    // Clear dependent tables first to avoid FK constraint violations
+    // (users.role_id and permissions.role_id both reference roles.id)
+    await knex('users').del();
+    await knex('permissions').del();
     await knex('roles').del();
 
     await knex('roles').insert([

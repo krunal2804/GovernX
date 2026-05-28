@@ -20,6 +20,16 @@ async function fetchProjectForActionPlanAccess(projectId, user) {
         return { error: { status: 403, message: 'Not authorized to view this project.' } };
     }
 
+    if (user.role_side === 'consulting' && user.hierarchy_level >= 4) {
+        const isMember = await db('project_members')
+            .where({ project_id: projectId, user_id: user.id })
+            .first();
+        const pDetails = await db('projects').where('id', projectId).select('created_by').first();
+        if (!isMember && pDetails?.created_by !== user.id) {
+            return { error: { status: 403, message: 'Not authorized to view this project.' } };
+        }
+    }
+
     return { project };
 }
 
@@ -45,6 +55,16 @@ router.get('/', authenticate, async (req, res) => {
 
         if (req.user && req.user.role_name === 'Client' && req.user.organization_id) {
             query = query.where('assignments.organization_id', req.user.organization_id);
+        } else if (req.user && req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            query = query.where(function() {
+                this.where('projects.created_by', req.user.id)
+                    .orWhereExists(function() {
+                        this.select('id')
+                            .from('project_members')
+                            .whereRaw('project_members.project_id = projects.id')
+                            .where('project_members.user_id', req.user.id);
+                    });
+            });
         }
 
         const projects = await query.orderBy('projects.created_at', 'desc');
@@ -100,6 +120,15 @@ router.get('/:id', authenticate, async (req, res) => {
 
         if (req.user.role_name === 'Client' && project.organization_id !== req.user.organization_id) {
             return res.status(403).json({ error: 'Not authorized to view this project.' });
+        }
+
+        if (req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            const isMember = await db('project_members')
+                .where({ project_id: project.id, user_id: req.user.id })
+                .first();
+            if (!isMember && project.created_by !== req.user.id) {
+                return res.status(403).json({ error: 'Not authorized to view this project.' });
+            }
         }
 
         const tasks = await db('project_tasks')

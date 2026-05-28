@@ -34,6 +34,24 @@ function EmptyDashboard({ roleName }) {
     );
 }
 
+function useMediaQuery(query) {
+    const [matches, setMatches] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return window.matchMedia(query).matches;
+    });
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const mediaQuery = window.matchMedia(query);
+        const handleChange = () => setMatches(mediaQuery.matches);
+        handleChange();
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, [query]);
+
+    return matches;
+}
+
 /* ─── Skeleton Loading Component ─── */
 function ClientPortalSkeleton() {
     const shimmer = `
@@ -56,12 +74,12 @@ function ClientPortalSkeleton() {
             <div style={skeletonStyle('100%', '120px', 24, '12px')} />
 
             {/* Stats skeleton */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '28px' }}>
+            <div className="dashboard-stat-grid" style={{ marginBottom: '28px' }}>
                 {[...Array(4)].map((_, i) => <div key={i} style={skeletonStyle('100%', '100px', 0, '12px')} />)}
             </div>
 
             {/* Charts skeleton */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '28px' }}>
+            <div className="dashboard-chart-grid" style={{ marginBottom: '28px' }}>
                 <div style={skeletonStyle('100%', '340px', 0, '12px')} />
                 <div style={skeletonStyle('100%', '340px', 0, '12px')} />
             </div>
@@ -195,6 +213,7 @@ function ClientPortal({ user }) {
     const navigate = useNavigate();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const isMobileDashboard = useMediaQuery('(max-width: 768px)');
 
     const todayKey = `client_welcome_dismissed_${user.id}_${new Date().toDateString()}`;
     const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem(todayKey));
@@ -226,9 +245,7 @@ function ClientPortal({ user }) {
     });
 
     const getProgressColor = (pct) => {
-        if (pct >= 75) return 'green';
-        if (pct >= 40) return 'orange';
-        return 'purple';
+        return pct >= 50 ? 'green' : 'blue';
     };
 
     /* ── Chart Data Preparation ── */
@@ -344,9 +361,7 @@ function ClientPortal({ user }) {
             )}
 
             {/* ── Stats Cards ── */}
-            <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px',
-            }}>
+            <div className="dashboard-stat-grid">
                 {[
                     { label: 'Total Projects', value: counts.projects || 0, icon: <HiOutlineClipboardList />, color: '#2563EB', bg: 'rgba(37,99,235,0.08)' },
                     { label: 'Tasks Completed', value: taskStats.completed || 0, icon: <HiOutlineCheckCircle />, color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
@@ -375,7 +390,7 @@ function ClientPortal({ user }) {
 
             {/* ── Charts Row: Line Chart + Task Distribution ── */}
             {allProjects.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                <div className="dashboard-chart-grid">
                     {/* Line/Area Chart */}
                     <div style={{
                         background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
@@ -394,7 +409,7 @@ function ClientPortal({ user }) {
                                 </p>
                             </div>
                         </div>
-                        <ResponsiveContainer width="100%" height={260}>
+                        <ResponsiveContainer width="100%" height={isMobileDashboard ? 180 : 260}>
                             <ComposedChart data={lineChartData} onClick={handleChartClick} style={{ cursor: 'pointer' }}>
                                 <defs>
                                     <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
@@ -405,13 +420,14 @@ function ClientPortal({ user }) {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis
                                     dataKey="name"
-                                    tick={isSingleProject ? false : { fontSize: 11, fill: '#64748b', fontWeight: 500 }}
+                                    tick={isSingleProject || isMobileDashboard ? false : { fontSize: 11, fill: '#64748b', fontWeight: 500 }}
                                     axisLine={{ stroke: '#e4e8f0' }} tickLine={false}
-                                    interval={0} angle={isSingleProject ? 0 : -20} textAnchor={isSingleProject ? 'middle' : 'end'}
-                                    height={isSingleProject ? 15 : 50}
+                                    interval={0} angle={isSingleProject || isMobileDashboard ? 0 : -20} textAnchor={isSingleProject || isMobileDashboard ? 'middle' : 'end'}
+                                    height={isSingleProject || isMobileDashboard ? 15 : 50}
                                 />
                                 <YAxis
                                     domain={[0, 100]} tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                                    hide={isMobileDashboard}
                                     axisLine={false} tickLine={false}
                                     tickFormatter={v => `${v}%`}
                                 />
@@ -455,7 +471,7 @@ function ClientPortal({ user }) {
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                             {taskPieData.length > 0 ? (
                                 <>
-                                    <ResponsiveContainer width="100%" height={200}>
+                                    <ResponsiveContainer width="100%" height={isMobileDashboard ? 190 : 200}>
                                         <PieChart>
                                             <Pie
                                                 data={taskPieData} cx="50%" cy="50%"
@@ -488,9 +504,9 @@ function ClientPortal({ user }) {
                         </div>
 
                         {/* Legend */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '8px' }}>
+                        <div className="dashboard-pie-legend">
                             {taskPieData.map((d, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                                <div className="dashboard-pie-legend-item" key={i}>
                                     <span style={{ width: 10, height: 10, borderRadius: '3px', background: d.color, display: 'inline-block' }} />
                                     {d.name} ({d.value})
                                 </div>
@@ -509,7 +525,7 @@ function ClientPortal({ user }) {
                             — Click any card to view details
                         </span>
                     </div>
-                    <div style={{
+                    <div className="dashboard-project-gauge-grid" style={{
                         display: 'grid',
                         gridTemplateColumns: `repeat(${Math.min(allProjects.length, 3)}, 1fr)`,
                         gap: '16px',
@@ -608,27 +624,6 @@ function ClientPortal({ user }) {
                 )}
             </div>
 
-            {/* ── Responsive overrides ── */}
-            <style>{`
-                @media (max-width: 1024px) {
-                    .fade-in > div[style*="gridTemplateColumns: 1.5fr"] {
-                        grid-template-columns: 1fr !important;
-                    }
-                }
-                @media (max-width: 768px) {
-                    .fade-in > div[style*="repeat(4"] {
-                        grid-template-columns: 1fr 1fr !important;
-                    }
-                    .fade-in > div[style*="repeat(3"] {
-                        grid-template-columns: 1fr !important;
-                    }
-                }
-                @media (max-width: 480px) {
-                    .fade-in > div[style*="repeat(4"] {
-                        grid-template-columns: 1fr !important;
-                    }
-                }
-            `}</style>
         </div>
     );
 }
@@ -636,6 +631,7 @@ function ClientPortal({ user }) {
 function ConsultingPortal({ user }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const isMobileDashboard = useMediaQuery('(max-width: 768px)');
 
     const todayKey = `welcome_dismissed_${user.id}_${new Date().toDateString()}`;
     const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem(todayKey));
@@ -664,9 +660,7 @@ function ConsultingPortal({ user }) {
     const activeProjects = allProjects.filter((project) => project.status === 'active' || project.status === 'not_started');
 
     const getProgressColor = (pct) => {
-        if (pct >= 75) return 'green';
-        if (pct >= 40) return 'orange';
-        return 'purple';
+        return pct >= 50 ? 'green' : 'blue';
     };
 
     const consultantChartData = activeProjects.map((p) => {
@@ -760,7 +754,7 @@ function ConsultingPortal({ user }) {
             </div>
 
             {activeProjects.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '28px' }}>
+                <div className="dashboard-chart-grid">
                     <div style={{
                         background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
                         padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
@@ -774,7 +768,7 @@ function ConsultingPortal({ user }) {
                                 <p style={{ fontSize: '12px', color: '#9CA3AF', margin: 0 }}>Completion % across your active projects</p>
                             </div>
                         </div>
-                        <ResponsiveContainer width="100%" height={260}>
+                        <ResponsiveContainer width="100%" height={isMobileDashboard ? 180 : 260}>
                             <ComposedChart data={consultantChartData}>
                                 <defs>
                                     <linearGradient id="consultantProgressGradient" x1="0" y1="0" x2="0" y2="1">
@@ -785,17 +779,18 @@ function ConsultingPortal({ user }) {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                 <XAxis
                                     dataKey="name"
-                                    tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }}
+                                    tick={isMobileDashboard ? false : { fontSize: 11, fill: '#64748b', fontWeight: 500 }}
                                     axisLine={{ stroke: '#e4e8f0' }}
                                     tickLine={false}
                                     interval={0}
-                                    angle={-20}
-                                    textAnchor="end"
-                                    height={50}
+                                    angle={isMobileDashboard ? 0 : -20}
+                                    textAnchor={isMobileDashboard ? 'middle' : 'end'}
+                                    height={isMobileDashboard ? 15 : 50}
                                 />
                                 <YAxis
                                     domain={[0, 100]}
                                     tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                                    hide={isMobileDashboard}
                                     axisLine={false}
                                     tickLine={false}
                                     tickFormatter={(v) => `${v}%`}
@@ -832,7 +827,7 @@ function ConsultingPortal({ user }) {
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                             {consultantTaskPieData.length > 0 ? (
                                 <>
-                                    <ResponsiveContainer width="100%" height={200}>
+                                    <ResponsiveContainer width="100%" height={isMobileDashboard ? 190 : 200}>
                                         <PieChart>
                                             <Pie data={consultantTaskPieData} cx="50%" cy="50%" innerRadius="60%" outerRadius="85%" paddingAngle={3} dataKey="value" stroke="none">
                                                 {consultantTaskPieData.map((entry, index) => (
@@ -852,9 +847,9 @@ function ConsultingPortal({ user }) {
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '8px' }}>
+                        <div className="dashboard-pie-legend">
                             {consultantTaskPieData.map((d, i) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                                <div className="dashboard-pie-legend-item" key={i}>
                                     <span style={{ width: 10, height: 10, borderRadius: '3px', background: d.color, display: 'inline-block' }} />
                                     {d.name} ({d.value})
                                 </div>
@@ -864,8 +859,8 @@ function ConsultingPortal({ user }) {
                 </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
-                <div className="card">
+            <div className="dashboard-secondary-grid">
+                <div className="card dashboard-task-overview-card">
                     <div className="card-header">
                         <span className="card-title">Task Overview</span>
                     </div>
@@ -992,8 +987,10 @@ function ConsultingPortal({ user }) {
 }
 
 function FullDashboard() {
+    const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const isMobileDashboard = useMediaQuery('(max-width: 768px)');
 
     useEffect(() => {
         api.get('/dashboard/stats')
@@ -1006,18 +1003,16 @@ function FullDashboard() {
     if (!stats) return null;
 
     const getProgressColor = (pct) => {
-        if (pct >= 75) return 'green';
-        if (pct >= 40) return 'orange';
-        return 'purple';
+        return pct >= 50 ? 'green' : 'blue';
     };
 
     return (
         <div className="fade-in">
-            <div className="stats-grid">
-                <div className="stat-card"><div className="stat-icon purple"><HiOutlineOfficeBuilding /></div><div className="stat-info"><h3>{stats.counts.organizations}</h3><p>Organizations</p></div></div>
-                <div className="stat-card"><div className="stat-icon blue"><HiOutlineCollection /></div><div className="stat-info"><h3>{stats.counts.assignments}</h3><p>Assignments</p></div></div>
-                <div className="stat-card"><div className="stat-icon green"><HiOutlineClipboardList /></div><div className="stat-info"><h3>{stats.counts.projects}</h3><p>Projects</p></div></div>
-                <div className="stat-card"><div className="stat-icon orange"><HiOutlineUsers /></div><div className="stat-info"><h3>{stats.counts.users}</h3><p>Team Members</p></div></div>
+            <div className="dashboard-stat-grid dashboard-kpi-grid">
+                <div className="stat-card"><div className="dashboard-kpi-main"><div className="stat-icon purple"><HiOutlineOfficeBuilding /></div><div className="stat-info"><h3>{stats.counts.organizations}</h3><p>Organizations</p></div></div></div>
+                <div className="stat-card"><div className="dashboard-kpi-main"><div className="stat-icon blue"><HiOutlineCollection /></div><div className="stat-info"><h3>{stats.counts.assignments}</h3><p>Assignments</p></div></div></div>
+                <div className="stat-card"><div className="dashboard-kpi-main"><div className="stat-icon green"><HiOutlineClipboardList /></div><div className="stat-info"><h3>{stats.counts.projects}</h3><p>Projects</p></div></div></div>
+                <div className="stat-card"><div className="dashboard-kpi-main"><div className="stat-icon orange"><HiOutlineUsers /></div><div className="stat-info"><h3>{stats.counts.users}</h3><p>Team Members</p></div></div></div>
             </div>
 
             {/* ── Charts Row: Project Progress Line Chart + Task Distribution Pie ── */}
@@ -1050,7 +1045,7 @@ function FullDashboard() {
                     : 0;
 
                 return (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                    <div className="dashboard-chart-grid">
                         {/* Line/Area Chart */}
                         <div style={{
                             background: '#fff', border: '1px solid #e4e8f0', borderRadius: '14px',
@@ -1065,7 +1060,7 @@ function FullDashboard() {
                                     <p style={{ fontSize: '12px', color: '#9CA3AF', margin: 0 }}>Completion % across all projects</p>
                                 </div>
                             </div>
-                            <ResponsiveContainer width="100%" height={260}>
+                            <ResponsiveContainer width="100%" height={isMobileDashboard ? 180 : 260}>
                                 <ComposedChart data={lineChartData}>
                                     <defs>
                                         <linearGradient id="dirProgressGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1076,13 +1071,14 @@ function FullDashboard() {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                     <XAxis
                                         dataKey="name"
-                                        tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }}
+                                        tick={isMobileDashboard ? false : { fontSize: 11, fill: '#64748b', fontWeight: 500 }}
                                         axisLine={{ stroke: '#e4e8f0' }} tickLine={false}
-                                        interval={0} angle={-20} textAnchor="end"
-                                        height={50}
+                                        interval={0} angle={isMobileDashboard ? 0 : -20} textAnchor={isMobileDashboard ? 'middle' : 'end'}
+                                        height={isMobileDashboard ? 15 : 50}
                                     />
                                     <YAxis
                                         domain={[0, 100]} tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                                        hide={isMobileDashboard}
                                         axisLine={false} tickLine={false}
                                         tickFormatter={v => `${v}%`}
                                     />
@@ -1117,7 +1113,7 @@ function FullDashboard() {
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                                 {taskPieData.length > 0 ? (
                                     <>
-                                        <ResponsiveContainer width="100%" height={200}>
+                                        <ResponsiveContainer width="100%" height={isMobileDashboard ? 190 : 200}>
                                             <PieChart>
                                                 <Pie
                                                     data={taskPieData} cx="50%" cy="50%"
@@ -1150,9 +1146,9 @@ function FullDashboard() {
                             </div>
 
                             {/* Legend */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '8px' }}>
+                            <div className="dashboard-pie-legend">
                                 {taskPieData.map((d, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                                    <div className="dashboard-pie-legend-item" key={i}>
                                         <span style={{ width: 10, height: 10, borderRadius: '3px', background: d.color, display: 'inline-block' }} />
                                         {d.name} ({d.value})
                                     </div>
@@ -1163,8 +1159,8 @@ function FullDashboard() {
                 );
             })()}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
-                <div className="card">
+            <div className="dashboard-secondary-grid">
+                <div className="card dashboard-task-overview-card">
                     <div className="card-header"><span className="card-title">Task Overview</span></div>
                     <div className="stats-grid" style={{ marginBottom: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><div className="stat-icon blue" style={{ width: '40px', height: '40px', fontSize: '18px' }}><HiOutlineClock /></div><div><div style={{ fontSize: '22px', fontWeight: 800 }}>{stats.taskStats.total}</div><div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Tasks</div></div></div>
@@ -1191,18 +1187,18 @@ function FullDashboard() {
             <div className="table-container">
                 <div className="table-header"><h2>Recent Projects</h2></div>
                 {stats.recentProjects.length > 0 ? (
-                    <table>
+                    <table className="recent-projects-table">
                         <thead>
                             <tr><th>Project</th><th>Organization</th><th>Service</th><th>Status</th><th>Progress</th></tr>
                         </thead>
                         <tbody>
                             {stats.recentProjects.map((project) => (
-                                <tr key={project.id}>
-                                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{project.name}</td>
-                                    <td>{project.organization_name} / {project.assignment_name}</td>
-                                    <td><span className="badge badge-purple">{project.service_name}</span></td>
-                                    <td><span className={`badge ${getWorkflowStatusBadge(project.status)}`}>{formatWorkflowStatus(project.status)}</span></td>
-                                    <td style={{ minWidth: '120px' }}>
+                                <tr key={project.id} onClick={() => navigate(`/projects/${project.id}`)} className="clickable-row">
+                                    <td className="rp-project-name" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{project.name}</td>
+                                    <td className="rp-org-name">{project.organization_name}<span className="assignment-text"> / {project.assignment_name}</span></td>
+                                    <td className="rp-service-name"><span className="badge badge-purple">{project.service_name}</span></td>
+                                    <td className="rp-status"><span className={`badge ${getWorkflowStatusBadge(project.status)}`}>{formatWorkflowStatus(project.status)}</span></td>
+                                    <td className="rp-progress" style={{ minWidth: '120px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <div className="progress-bar" style={{ flex: 1 }}>
                                                 <div className={`fill ${getProgressColor(parseFloat(project.progress_percentage))}`} style={{ width: `${project.progress_percentage}%` }} />

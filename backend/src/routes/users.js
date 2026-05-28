@@ -42,7 +42,14 @@ router.get('/', authenticate, async (req, res) => {
 // GET /api/users/:id/details — Get user details and active assignments
 router.get('/:id/details', authenticate, async (req, res) => {
     try {
-        const userId = req.params.id;
+        const userId = parseInt(req.params.id);
+
+        // ─── Authorization check ───
+        // Directors & Managers (hierarchy_level <= 2) can view any user's details.
+        // Everyone else (Consultants, Clients) can only view their own details.
+        if (req.user.hierarchy_level > 2 && req.user.id !== userId) {
+            return res.status(403).json({ error: 'You can only view your own details.' });
+        }
 
         const user = await db('users')
             .join('roles', 'users.role_id', 'roles.id')
@@ -125,6 +132,20 @@ router.post('/', authenticate, async (req, res) => {
 
         if (!first_name || !last_name || !email || !password || !role_id) {
             return res.status(400).json({ error: 'first_name, last_name, email, password, and role_id are required.' });
+        }
+
+        // ─── Privilege escalation prevention ───
+        // Verify the target role exists and that the requesting user
+        // cannot assign a role with equal or higher privilege than their own.
+        const targetRole = await db('roles').where({ id: role_id }).first();
+        if (!targetRole) {
+            return res.status(400).json({ error: 'Invalid role selected.' });
+        }
+        // hierarchy_level 1 = Director (most privileged). A Manager (level 2)
+        // should only be able to create users at level 3+ (less privileged).
+        // Directors (level 1) can create any role.
+        if (req.user.hierarchy_level !== 1 && targetRole.hierarchy_level <= req.user.hierarchy_level) {
+            return res.status(403).json({ error: 'You cannot assign a role with equal or higher privilege than your own.' });
         }
 
         const existing = await db('users').where({ email, is_active: true }).first();
@@ -240,6 +261,8 @@ router.post('/bulk/validate', authenticate, upload.single('file'), async (req, r
                 first_name: firstName,
                 last_name: lastName,
                 email: email,
+                // Note: Password is sent back because the frontend needs it for inline editing
+                // and re-submission to /bulk/confirm. Data originates from the user's own Excel file.
                 password: password,
                 role_name: roleName,
                 phone: phone,
@@ -315,6 +338,12 @@ router.post('/bulk/confirm', authenticate, async (req, res) => {
             const matchedRole = allRoles.find(r => r.name.toLowerCase() === roleName.toLowerCase());
             if (!matchedRole) {
                 errors.push(`Row ${rowNum}: Role "${roleName}" not found`);
+                continue;
+            }
+
+            // ─── Privilege escalation prevention ───
+            if (req.user.hierarchy_level !== 1 && matchedRole.hierarchy_level <= req.user.hierarchy_level) {
+                errors.push(`Row ${rowNum}: You cannot assign the "${matchedRole.name}" role (equal or higher privilege than your own).`);
                 continue;
             }
 

@@ -19,9 +19,7 @@ export default function ClientDetailPage() {
     }, [id]);
 
     const getProgressColor = (pct) => {
-        if (pct >= 75) return 'green';
-        if (pct >= 40) return 'orange';
-        return 'purple';
+        return pct >= 50 ? 'green' : 'blue';
     };
 
     if (loading) return <div className="loading-spinner"><div className="spinner" /></div>;
@@ -38,7 +36,7 @@ export default function ClientDetailPage() {
             <div style={{ marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '24px', fontWeight: 700 }}>{org.name}</h2>
                 <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                    {[org.industry, org.city, org.state, org.country].filter(Boolean).join(' • ') || 'No details'}
+                    {[org.industry, org.city, org.state, org.country].filter(Boolean).join(' ï¿½ ') || 'No details'}
                 </span>
             </div>
 
@@ -80,7 +78,7 @@ export default function ClientDetailPage() {
                                 <div>
                                     <h3 style={{ fontSize: '18px', fontWeight: 700 }}>{a.name}</h3>
                                     <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                                        {a.location || 'No location'} • {a.project_count} project{a.project_count !== 1 ? 's' : ''} • {a.total_tasks} task{a.total_tasks !== 1 ? 's' : ''}
+                                        {a.location || 'No location'} ï¿½ {a.project_count} project{a.project_count !== 1 ? 's' : ''} ï¿½ {a.total_tasks} task{a.total_tasks !== 1 ? 's' : ''}
                                     </span>
                                 </div>
                                 <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>

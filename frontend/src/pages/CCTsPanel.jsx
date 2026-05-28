@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { HiOutlineCollection, HiOutlineDownload, HiOutlinePencil, HiOutlinePlus, HiOutlineTrash, HiOutlineUpload, HiOutlineX } from 'react-icons/hi';
+import { HiOutlineCollection, HiOutlineDownload, HiOutlinePencil, HiOutlinePlus, HiOutlineTrash, HiOutlineUpload, HiOutlineX, HiOutlineDotsVertical, HiOutlineArrowLeft } from 'react-icons/hi';
 
 export default function CCTsPanel() {
     const [plans, setPlans] = useState([]);
@@ -15,13 +15,13 @@ export default function CCTsPanel() {
     const [bulkRows, setBulkRows] = useState([]);
     const [bulkLoading, setBulkLoading] = useState(false);
     const [bulkError, setBulkError] = useState('');
+    const [showMobileActions, setShowMobileActions] = useState(false);
 
     const fetchPlans = async () => {
         setLoading(true);
         try {
             const res = await api.get('/ccts');
             setPlans(res.data);
-            if (!selectedPlanId && res.data.length > 0) setSelectedPlanId(res.data[0].id);
         } catch (err) {
             console.error(err);
         } finally {
@@ -197,8 +197,8 @@ export default function CCTsPanel() {
     if (loading) return <div>Loading...</div>;
 
     return (
-        <div className="fade-in" style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 160px)' }}>
-            <div style={{ width: '300px', flexShrink: 0, background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
+        <div className={`fade-in service-builder-container ${selectedPlanId ? 'has-selection' : ''}`}>
+            <div className="service-builder-sidebar">
                 <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>Client Commitment Trackers</h2>
                     <button className="btn btn-primary btn-sm" onClick={() => openModal('plan')}><HiOutlinePlus /> Add</button>
@@ -223,19 +223,55 @@ export default function CCTsPanel() {
                 </div>
             </div>
 
-            <div style={{ flex: 1, background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div className="service-builder-main">
                 {planDetails ? (
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }} className="service-detail-scroll-area">
                         <div style={{ marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button 
+                                className="btn btn-secondary btn-sm mobile-back-btn" 
+                                onClick={() => setSelectedPlanId(null)}
+                                style={{ marginBottom: '16px' }}
+                            >
+                                <HiOutlineArrowLeft /> Back to Trackers
+                            </button>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', position: 'relative' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, paddingRight: '24px' }}>
                                     <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>{planDetails.name}</h1>
-                                    <button className="btn-icon" onClick={() => openModal('plan', null, planDetails)} title="Edit Plan"><HiOutlinePencil /></button>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className="btn btn-primary btn-sm" onClick={() => openModal('category', planDetails.id)}><HiOutlinePlus /> Add Category</button>
-                                    <button className="btn btn-secondary btn-sm" onClick={openBulkModal}><HiOutlineUpload /> Upload Excel</button>
-                                    <button className="btn btn-secondary btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => handleDelete('plan', planDetails.id)}><HiOutlineTrash /> Delete Plan</button>
+                                <div className="desktop-actions" style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                                    <button className="btn-icon" onClick={() => openModal('plan', null, planDetails)} title="Edit Plan">
+                                        <HiOutlinePencil />
+                                    </button>
+                                    <button className="btn btn-primary btn-sm" onClick={() => openModal('category', planDetails.id)}>
+                                        <HiOutlinePlus /> Add Category
+                                    </button>
+                                    <button className="btn btn-secondary btn-sm" onClick={openBulkModal}>
+                                        <HiOutlineUpload /> Upload Excel
+                                    </button>
+                                    <button className="btn btn-secondary btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => handleDelete('plan', planDetails.id)}>
+                                        <HiOutlineTrash /> Delete Plan
+                                    </button>
+                                </div>
+                                <div className="mobile-actions-toggle">
+                                    <button className="btn-icon" onClick={() => setShowMobileActions(!showMobileActions)}>
+                                        <HiOutlineDotsVertical />
+                                    </button>
+                                    {showMobileActions && (
+                                        <div className="mobile-actions-dropdown fade-in">
+                                            <button className="mobile-action-btn" onClick={() => { setShowMobileActions(false); openModal('plan', null, planDetails); }}>
+                                                <HiOutlinePencil /> Edit Plan
+                                            </button>
+                                            <button className="mobile-action-btn" onClick={() => { setShowMobileActions(false); openModal('category', planDetails.id); }}>
+                                                <HiOutlinePlus /> Add Category
+                                            </button>
+                                            <button className="mobile-action-btn" onClick={() => { setShowMobileActions(false); openBulkModal(); }}>
+                                                <HiOutlineUpload /> Upload Excel
+                                            </button>
+                                            <button className="mobile-action-btn danger" onClick={() => { setShowMobileActions(false); handleDelete('plan', planDetails.id); }}>
+                                                <HiOutlineTrash /> Delete Plan
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{planDetails.description || 'No description provided.'}</p>

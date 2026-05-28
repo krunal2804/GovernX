@@ -50,6 +50,17 @@ router.get('/', authenticate, async (req, res) => {
 
         if (req.user && req.user.role_name === 'Client' && req.user.organization_id) {
             query = query.where('assignments.organization_id', req.user.organization_id);
+        } else if (req.user && req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            query = query.where(function() {
+                this.where('assignments.created_by', req.user.id)
+                    .orWhere('assignments.faber_poc_id', req.user.id)
+                    .orWhereExists(function() {
+                        this.select('id')
+                            .from('assignment_team_members')
+                            .whereRaw('assignment_team_members.assignment_id = assignments.id')
+                            .where('assignment_team_members.user_id', req.user.id);
+                    });
+            });
         }
 
         const assignments = await query.orderBy('assignments.name');
@@ -94,6 +105,15 @@ router.get('/:id', authenticate, async (req, res) => {
 
         if (req.user.role_name === 'Client' && assignment.organization_id !== req.user.organization_id) {
             return res.status(403).json({ error: 'Not authorized to view this assignment.' });
+        }
+
+        if (req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            const isMember = await db('assignment_team_members')
+                .where({ assignment_id: assignment.id, user_id: req.user.id })
+                .first();
+            if (!isMember && assignment.created_by !== req.user.id && assignment.faber_poc_id !== req.user.id) {
+                return res.status(403).json({ error: 'Not authorized to view this assignment.' });
+            }
         }
 
         const teamMember = await db('assignment_team_members')
