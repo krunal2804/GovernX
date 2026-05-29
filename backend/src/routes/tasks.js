@@ -8,6 +8,7 @@ const {
     getBlockingTask,
 } = require('../utils/projectTaskOrder');
 const { deriveProjectDbStatus } = require('../utils/workflowStatus');
+const { verifyProjectAccess } = require('../utils/projectAccess');
 
 const router = express.Router();
 
@@ -15,6 +16,9 @@ router.get('/', authenticate, async (req, res) => {
     try {
         const { project_id } = req.query;
         if (!project_id) return res.status(400).json({ error: 'project_id is required.' });
+
+        const access = await verifyProjectAccess(project_id, req.user);
+        if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
         const tasks = await db('project_tasks')
             .leftJoin('users', 'project_tasks.assigned_to', 'users.id')
@@ -50,6 +54,11 @@ router.put('/:id', authenticate, authorize('tasks', 'can_edit'), async (req, res
 
         const existingTask = await db('project_tasks').where({ id: req.params.id }).first();
         if (!existingTask) return res.status(404).json({ error: 'Task not found.' });
+
+        const access = await verifyProjectAccess(existingTask.project_id, req.user);
+        if (access.error && existingTask.assigned_to !== req.user.id) {
+            return res.status(access.error.status).json({ error: access.error.message });
+        }
 
         if (status !== undefined && status !== existingTask.status && status !== 'not_started') {
             const orderedTasks = buildTaskLockState(await fetchProjectTasksForOrder(db, existingTask.project_id));

@@ -32,6 +32,10 @@ router.get('/', authenticate, async (req, res) => {
 
         if (role_side) query = query.where('roles.side', role_side);
 
+        if (req.user.role_name === 'Client') {
+            query = query.where('users.organization_id', req.user.organization_id);
+        }
+
         const users = await query.orderBy('roles.side', 'desc').orderBy('users.first_name');
         res.json(users);
     } catch (err) {
@@ -409,6 +413,10 @@ router.post('/bulk/confirm', authenticate, async (req, res) => {
 // GET /api/users/:id/deletion-check — Check if user has unfinished projects/assignments
 router.get('/:id/deletion-check', authenticate, async (req, res) => {
     try {
+        if (req.user.hierarchy_level > 2) {
+            return res.status(403).json({ error: 'Not authorized to check deletion constraints.' });
+        }
+
         const userId = req.params.id;
 
         const userToDelete = await db('users')

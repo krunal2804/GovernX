@@ -8,6 +8,10 @@ const router = express.Router();
 
 router.get('/stats', authenticate, async (req, res) => {
     try {
+        if (req.user.hierarchy_level >= 4) {
+            return res.status(403).json({ error: 'Not authorized to view global statistics.' });
+        }
+
         const [orgCount] = await db('organizations').where({ is_active: true }).count();
         const [assignmentCount] = await db('assignments').where({ is_active: true }).count();
         const [projectCount] = await db('projects').where({ is_active: true }).count();

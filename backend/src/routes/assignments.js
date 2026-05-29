@@ -320,6 +320,18 @@ router.put('/:id', authenticate, authorize('assignments', 'can_edit'), async (re
             schedule_type, team_members, consulting_days
         } = req.body;
 
+        const existingAssignment = await db('assignments').where({ id: req.params.id }).first();
+        if (!existingAssignment) return res.status(404).json({ error: 'Assignment not found.' });
+
+        if (req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            const isMember = await db('assignment_team_members')
+                .where({ assignment_id: existingAssignment.id, user_id: req.user.id })
+                .first();
+            if (!isMember && existingAssignment.created_by !== req.user.id && existingAssignment.faber_poc_id !== req.user.id) {
+                return res.status(403).json({ error: 'Not authorized to edit this assignment.' });
+            }
+        }
+
         const result = await db.transaction(async (trx) => {
             const [assignment] = await trx('assignments')
                 .where({ id: req.params.id })
@@ -392,6 +404,18 @@ router.put('/:id', authenticate, authorize('assignments', 'can_edit'), async (re
 
 router.delete('/:id', authenticate, authorize('assignments', 'can_delete'), async (req, res) => {
     try {
+        const existingAssignment = await db('assignments').where({ id: req.params.id }).first();
+        if (!existingAssignment) return res.status(404).json({ error: 'Assignment not found.' });
+
+        if (req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            const isMember = await db('assignment_team_members')
+                .where({ assignment_id: existingAssignment.id, user_id: req.user.id })
+                .first();
+            if (!isMember && existingAssignment.created_by !== req.user.id && existingAssignment.faber_poc_id !== req.user.id) {
+                return res.status(403).json({ error: 'Not authorized to delete this assignment.' });
+            }
+        }
+
         await db.transaction(async (trx) => {
             await trx('assignments').where({ id: req.params.id }).update({ is_active: false });
             await trx('projects').where({ assignment_id: req.params.id }).update({ is_active: false });

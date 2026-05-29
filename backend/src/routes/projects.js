@@ -3,35 +3,12 @@ const db = require('../database/db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { buildTaskLockState, resequenceProjectTasks } = require('../utils/projectTaskOrder');
 const { deriveProjectWorkflowStatusFromTasks, deriveProjectWorkflowStatus } = require('../utils/workflowStatus');
+const { verifyProjectAccess } = require('../utils/projectAccess');
 
 const router = express.Router();
 const MAX_cct_TITLE_LENGTH = 150;
 
-async function fetchProjectForActionPlanAccess(projectId, user) {
-    const project = await db('projects')
-        .join('assignments', 'projects.assignment_id', 'assignments.id')
-        .select('projects.id', 'assignments.organization_id')
-        .where('projects.id', projectId)
-        .first();
 
-    if (!project) return { error: { status: 404, message: 'Project not found.' } };
-
-    if (user.role_name === 'Client' && project.organization_id !== user.organization_id) {
-        return { error: { status: 403, message: 'Not authorized to view this project.' } };
-    }
-
-    if (user.role_side === 'consulting' && user.hierarchy_level >= 4) {
-        const isMember = await db('project_members')
-            .where({ project_id: projectId, user_id: user.id })
-            .first();
-        const pDetails = await db('projects').where('id', projectId).select('created_by').first();
-        if (!isMember && pDetails?.created_by !== user.id) {
-            return { error: { status: 403, message: 'Not authorized to view this project.' } };
-        }
-    }
-
-    return { project };
-}
 
 router.get('/', authenticate, async (req, res) => {
     try {
@@ -268,6 +245,9 @@ router.post('/', authenticate, authorize('projects', 'can_create'), async (req, 
 
 router.put('/:id', authenticate, authorize('projects', 'can_edit'), async (req, res) => {
     try {
+        const access = await verifyProjectAccess(req.params.id, req.user);
+        if (access.error) return res.status(access.error.status).json({ error: access.error.message });
+
         const { name, description, start_date } = req.body;
         const [project] = await db('projects')
             .where({ id: req.params.id })
@@ -282,6 +262,9 @@ router.put('/:id', authenticate, authorize('projects', 'can_edit'), async (req, 
 
 router.delete('/:id', authenticate, authorize('projects', 'can_delete'), async (req, res) => {
     try {
+        const access = await verifyProjectAccess(req.params.id, req.user);
+        if (access.error) return res.status(access.error.status).json({ error: access.error.message });
+
         await db('projects').where({ id: req.params.id }).update({ is_active: false });
         res.json({ message: 'Project deactivated.' });
     } catch (err) {
@@ -296,7 +279,7 @@ router.delete('/:id', authenticate, authorize('projects', 'can_delete'), async (
 // GET /api/projects/:id/ccts
 router.get('/:id/ccts', authenticate, async (req, res) => {
     try {
-        const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
+        const access = await verifyProjectAccess(req.params.id, req.user);
         if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
         const plans = await db('project_ccts')
@@ -341,7 +324,7 @@ router.post('/:id/ccts/send', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'Client users cannot send CCTs.' });
         }
 
-        const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
+        const access = await verifyProjectAccess(req.params.id, req.user);
         if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
         const actionPlanTemplateId = Number.parseInt(req.body.cct_template_id, 10);
@@ -415,7 +398,7 @@ router.post('/:id/ccts/send', authenticate, async (req, res) => {
 // GET /api/projects/:id/ccts/:planId
 router.get('/:id/ccts/:planId', authenticate, async (req, res) => {
     try {
-        const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
+        const access = await verifyProjectAccess(req.params.id, req.user);
         if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
         const plan = await db('project_ccts')
@@ -463,7 +446,7 @@ router.put('/:id/ccts/:planId/particulars/:particularId/score', authenticate, as
             return res.status(403).json({ error: 'Client users cannot score CCT particulars.' });
         }
 
-        const access = await fetchProjectForActionPlanAccess(req.params.id, req.user);
+        const access = await verifyProjectAccess(req.params.id, req.user);
         if (access.error) return res.status(access.error.status).json({ error: access.error.message });
 
         const rawScore = req.body.score_out_of_5;

@@ -8,10 +8,25 @@ const router = express.Router();
 
 router.get('/', authenticate, async (req, res) => {
     try {
-        const orgs = await db('organizations')
+        const query = db('organizations')
             .select('organizations.*')
             .where('organizations.is_active', true)
             .orderBy('organizations.name');
+
+        if (req.user.role_name === 'Client') {
+            query.where('organizations.id', req.user.organization_id);
+        }
+
+        if (req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            query.whereIn('organizations.id', function() {
+                this.select('assignments.organization_id')
+                    .from('assignments')
+                    .join('assignment_team_members', 'assignments.id', 'assignment_team_members.assignment_id')
+                    .where('assignment_team_members.user_id', req.user.id);
+            });
+        }
+
+        const orgs = await query;
 
         const enriched = await Promise.all(
             orgs.map(async (org) => {
@@ -35,6 +50,21 @@ router.get('/:id', authenticate, async (req, res) => {
     try {
         const org = await db('organizations').where({ id: req.params.id }).first();
         if (!org) return res.status(404).json({ error: 'Organization not found.' });
+
+        if (req.user.role_name === 'Client' && org.id !== req.user.organization_id) {
+            return res.status(403).json({ error: 'Not authorized to view this organization.' });
+        }
+
+        if (req.user.role_side === 'consulting' && req.user.hierarchy_level >= 4) {
+            const hasAccess = await db('assignments')
+                .join('assignment_team_members', 'assignments.id', 'assignment_team_members.assignment_id')
+                .where('assignments.organization_id', org.id)
+                .andWhere('assignment_team_members.user_id', req.user.id)
+                .first();
+            if (!hasAccess) {
+                return res.status(403).json({ error: 'Not authorized to view this organization.' });
+            }
+        }
 
         const assignments = await db('assignments').where({ organization_id: org.id, is_active: true });
 
